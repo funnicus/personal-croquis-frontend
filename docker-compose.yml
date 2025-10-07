@@ -1,0 +1,8 @@
+services:
+  croquis-frontend:
+    volumes:
+      - ./static/images/references:/app/static/images/references
+    build:
+      context: .
+    ports:
+      - "3000:3000"

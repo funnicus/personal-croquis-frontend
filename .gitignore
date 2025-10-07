@@ -24,3 +24,5 @@ vite.config.ts.timestamp-*
 
 # Image library
 static/images/references/*
+
+.DS_Store
