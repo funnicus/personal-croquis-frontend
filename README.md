@@ -3,9 +3,11 @@
 `npm run dev -- --open`
 
 ## TODO:
-1. Image display
-2. Fetch Image from filesystem
-3. Timer and image switsh functionality
+
+1. Images
+2. Upload
+3. Timer
 
 ## Bonus:
-1. Firefox extension, that automatically saves image to database
+
+1. Extension
