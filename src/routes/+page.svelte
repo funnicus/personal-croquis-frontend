@@ -3,12 +3,16 @@
 
 	let { data } = $props();
 	let current = $state(data.file);
+
 	let time = $state(60);
 	let timeOnReset = $state(60);
-	let loading = $state(false);
+
 	let hours = $state(0);
 	let minutes = $state(1);
 	let seconds = $state(0);
+
+	let loading = $state(false);
+	let stopped = $state(false);
 
 	const getNewImage = async () => {
 		loading = true;
@@ -24,8 +28,16 @@
 		timeOnReset = time;
 	};
 
+	const stopTime = () => {
+		stopped = true;
+	};
+
+	const resumeTime = () => {
+		stopped = false;
+	};
+
 	onMount(() => {
-		const interval = setInterval(() => time--, 1000);
+		const interval = setInterval(() => (stopped ? null : time--), 1000);
 
 		return () => clearInterval(interval);
 	});
@@ -52,9 +64,18 @@
 				<input id="s" type="number" class="input" bind:value={seconds} min="0" max="59" />
 			</div>
 			<button onclick={setTime} class="secondary btn">Set time</button>
+			{#if stopped}
+				<button onclick={resumeTime} class="btn btn-warning">Resume</button>
+			{:else}
+				<button onclick={stopTime} class="btn btn-error">Stop</button>
+			{/if}
 		</section>
-		<section class="w-[70vw]">
-			<img class="mx-auto h-[100%]" src={current} alt="croqui ref" />
+		<section class="flex w-[70vw] items-center justify-center">
+			{#if loading}
+				<span class="loading loading-xl loading-spinner text-primary"></span>
+			{:else}
+				<img class="h-[100%]" src={current} alt="croqui ref" />
+			{/if}
 		</section>
 	</div>
 </div>

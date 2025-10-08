@@ -26,3 +26,5 @@ vite.config.ts.timestamp-*
 static/images/references/*
 
 .DS_Store
+
+PRIVATE.md
