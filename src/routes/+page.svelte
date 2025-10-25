@@ -1,24 +1,24 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	let { data } = $props();
-	let current = $state(data.file);
+	let current = $state<string | null>(null);
 
-	let time = $state(60);
+	let time = $state(0);
 	let timeOnReset = $state(60);
 
 	let hours = $state(0);
 	let minutes = $state(1);
 	let seconds = $state(0);
 
-	let loading = $state(false);
+	let loading = $state(true);
 	let stopped = $state(false);
 
 	const getNewImage = async () => {
 		loading = true;
-		const res = await fetch('/api/images');
-		const data = await res.json();
-		current = data.file;
+		const res = await fetch('/api/images/random');
+		const data = await res.blob();
+		const urlCreator = window.URL || window.webkitURL;
+		current = urlCreator.createObjectURL(data);
 		time = timeOnReset;
 		loading = false;
 	};
@@ -37,13 +37,13 @@
 	};
 
 	onMount(() => {
-		const interval = setInterval(() => (stopped ? null : time--), 1000);
+		const interval = setInterval(() => (stopped || time <= 0 ? null : time--), 1000);
 
 		return () => clearInterval(interval);
 	});
 
 	$effect(() => {
-		if (time == 0) {
+		if (time <= 0) {
 			getNewImage();
 		}
 	});

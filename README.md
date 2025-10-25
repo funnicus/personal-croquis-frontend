@@ -1,8 +1,11 @@
 # Personal Croqui Frontend
 
-## Development
+## First time setup
 
-First populate .env. Run `echo $(id -u):$(id -g)` to see MINIO_USER.
+First populate .env:
+
+1. Run `echo $(id -u):$(id -g)` to see MINIO_USER.
+2. Fill other envs as you like.
 
 ```bash
 npm run dev -- --open
@@ -24,14 +27,13 @@ MinIO frontend can be found at http://localhost:9001.
 
 `docker compose -f "docker-compose.yml" up -d --build`
 
-If you want to sync images easily to server:
+## AIStor for MinIO management
 
-`rsync -avzh --delete --progress --stats . user@address:/path/to/static/images/references`
+If you want to manage MinIO stuff, install [AIStor CLient](https://docs.min.io/enterprise/aistor-object-store/reference/cli/?tab=quickstart-linux). Remember to add to path.
 
 ## TODO:
 
-1. Gallery
-
-## Bonus:
+### Bonus:
 
 1. Extension to autoupload
+2. Throttle large uploads
