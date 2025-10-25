@@ -2,7 +2,25 @@ services:
   croquis-frontend:
     volumes:
       - ./static/images/references:/app/static/images/references
+    restart: always
     build:
       context: .
     ports:
       - "3000:3000"
+  # MinIO admin user info defined in .env
+  minio:
+    ports:
+      - 9000:9000
+      - 9001:9001
+    user: ${MINIO_USER}
+    container_name: minio-croquis-frontend
+    volumes:
+      - ./minio/data:/data
+    restart: always
+    image: quay.io/minio/minio
+    command: server /data --console-address ":9001"
+    env_file:
+      - .env
+
+volumes:
+  minio:

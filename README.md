@@ -1,14 +1,13 @@
 # Personal Croqui Frontend
 
-`npm run dev -- --open`
+## Development
 
-or
+First populate .env. Run `echo $(id -u):$(id -g)` to see MINIO_USER.
 
-`docker compose -f "docker-compose.yml" up -d`
-
-or
-
-`docker compose -f "docker-compose.yml" up -d --build`
+```bash
+npm run dev -- --open
+docker compose --profile minio -f "docker-compose.yml" up -d --no-deps --build
+```
 
 For docker debug:
 
@@ -19,15 +18,19 @@ docker exec -it <server_container_id> sh # Exec with a shell into the wad server
 exit # exit container
 ```
 
+MinIO frontend can be found at http://localhost:9001.
+
+## Deploy
+
+`docker compose -f "docker-compose.yml" up -d --build`
+
 If you want to sync images easily to server:
 
 `rsync -avzh --delete --progress --stats . user@address:/path/to/static/images/references`
 
 ## TODO:
 
-3. Timer
-4. Filters and categories
-5. Each image only once vs random
+1. Gallery
 
 ## Bonus:
 

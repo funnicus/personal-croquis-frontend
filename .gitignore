@@ -28,3 +28,5 @@ static/images/references/*
 .DS_Store
 
 PRIVATE.md
+
+minio/data
