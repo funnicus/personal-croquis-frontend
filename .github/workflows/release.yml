@@ -1,0 +1,32 @@
+name: Generate release notes
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  changelog:
+    name: Generate changelog
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release_body: ${{ steps.git-cliff.outputs.content }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Generate a changelog
+        uses: orhun/git-cliff-action@v4
+        id: git-cliff
+        with:
+          config: cliff.toml
+          args: -vv --latest --strip header
+        env:
+          OUTPUT: CHANGELOG.md
+          GITHUB_REPO: ${{ github.repository }}
+      - uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          bodyFile: "CHANGELOG.md"
