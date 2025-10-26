@@ -10,24 +10,35 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="drawer">
-	<input id="my-drawer" type="checkbox" class="drawer-toggle" />
-	<div class="drawer-content">
-		<!-- Page content here -->
-		<label for="my-drawer" class="drawer-button btn absolute m-5 rounded-full btn-neutral"
-			><Bars /></label
-		>
+<div class="h-screen">
+	<div class="navbar h-[8%] bg-base-100 shadow-sm">
+		<div class="navbar-start">
+			<div class="dropdown">
+				<div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
+					<Bars />
+				</div>
+				<ul
+					tabindex="-1"
+					class="dropdown-content menu z-1 mt-3 w-52 menu-sm rounded-box bg-base-100 p-2 shadow"
+				>
+					<li><a href="/">✏️ Croquis</a></li>
+					<li><a href="/gallery?limit=10">🖼️ Gallery</a></li>
+					<li><a href="/upload">📂 Upload</a></li>
+				</ul>
+			</div>
+			<a href="/" class="btn text-xl btn-ghost">Croquis Frontend</a>
+		</div>
+		<div class="navbar-center hidden lg:flex">
+			<ul class="menu menu-horizontal px-1">
+				<li><a href="/">✏️ Croquis</a></li>
+				<li><a href="/gallery?limit=10">🖼️ Gallery</a></li>
+				<li><a href="/upload">📂 Upload</a></li>
+			</ul>
+		</div>
+		<div class="navbar-end"></div>
 	</div>
-	<div class="drawer-side">
-		<label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
-		<ul class="menu min-h-full w-80 bg-base-200 p-4 text-base-content">
-			<!-- Sidebar content here -->
-			<li><a href="/">✏️ Croquis</a></li>
-			<li><a href="/gallery">🖼️ Gallery</a></li>
-		</ul>
-	</div>
-</div>
 
-<main class="p-5">
-	{@render children?.()}
-</main>
+	<main class="h-[92%] p-5">
+		{@render children?.()}
+	</main>
+</div>

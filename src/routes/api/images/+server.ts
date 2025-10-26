@@ -1,8 +1,11 @@
 import type { RequestHandler } from './$types';
-import { imageService } from '$lib/server/services/image-service';
+import { imageService } from '$lib/server/image/image-service';
+import { redirect } from '@sveltejs/kit';
 
 export const GET: RequestHandler = async ({ url }) => {
-	const { items, nextCursor } = await imageService.getMany(Number(url.searchParams.get('limit')));
+	const limit = Number(url.searchParams.get('limit')) || 50;
+
+	const { items, nextCursor } = await imageService.getMany(limit);
 
 	return new Response(JSON.stringify({ items, nextCursor }), {
 		headers: { 'content-type': 'application/json' }
@@ -19,10 +22,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 	}
 
-	const { ok, failed } = await imageService.createMany(files);
+	await imageService.createMany(files);
 
-	return new Response(JSON.stringify({ ok, failed }), {
-		status: failed.length ? 207 /* Multi-Status */ : 200,
-		headers: { 'content-type': 'application/json' }
-	});
+	return redirect(303, '/gallery');
 };

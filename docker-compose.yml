@@ -1,12 +1,12 @@
+networks:
+  stack:
+    driver: bridge
+
 services:
-  croquis-frontend:
-    restart: always
-    build:
-      context: .
-    ports:
-      - "3000:3000"
   # MinIO admin user info defined in .env
   minio:
+    networks:
+      - stack
     ports:
       - ${BLOB_STORAGE_PORT}:9000
       - ${BLOB_STORAGE_API_PORT}:9001
@@ -14,11 +14,43 @@ services:
     container_name: minio-croquis-frontend
     volumes:
       - ./minio/data:/data
-    restart: always
+    restart: unless-stopped
     image: quay.io/minio/minio
     command: server /data --console-address ":9001"
     env_file:
       - .env
+  db:
+    networks:
+      - stack
+    image: postgres:17
+    restart: unless-stopped
+    ports:
+      - ${DATABASE_PORT}:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+  app:
+    networks:
+      - stack
+    restart: unless-stopped
+    build:
+      context: .
+    depends_on:
+      - db
+      - minio
+    ports:
+      - "${FRONTEND_PORT}:3000"
+    env_file:
+      - .env
+    # For linux host machines to access host services from inside Docker containers
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
   minio:
+  pgdata:

@@ -11,7 +11,15 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
-		"lint": "prettier --check . && eslint ."
+		"lint": "prettier --check . && eslint .",
+		"kysely-init": "kysely init",
+		"kysely-h": "kysely -h",
+		"migrate:make": "kysely migrate make",
+		"migrate:up": "kysely migrate up",
+		"migrate:down": "kysely migrate down",
+		"migrate:rollback": "kysely migrate rollback",
+		"seed:make": "kysely seed make",
+		"seed:run": "kysely seed run"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.4.0",
@@ -23,6 +31,7 @@
 		"@tailwindcss/typography": "^0.5.18",
 		"@tailwindcss/vite": "^4.1.13",
 		"@types/node": "^22",
+		"@types/pg": "^8.15.5",
 		"eslint": "^9.36.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.12.4",
@@ -39,6 +48,10 @@
 	},
 	"dependencies": {
 		"daisyui": "^5.1.29",
-		"minio": "^8.0.6"
+		"dotenv": "^17.2.3",
+		"kysely": "^0.28.8",
+		"kysely-ctl": "^0.19.0",
+		"minio": "^8.0.6",
+		"pg": "^8.16.3"
 	}
 }

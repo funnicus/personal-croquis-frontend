@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import type { PageProps } from './$types';
+
+	let { data }: PageProps = $props();
 
 	let current = $state<string | null>(null);
 
@@ -13,9 +16,18 @@
 	let loading = $state(true);
 	let stopped = $state(false);
 
+	let tags: string[] = $state([]);
+
 	const getNewImage = async () => {
 		loading = true;
-		const res = await fetch('/api/images/random');
+		const res = await fetch(`/api/images/random?${tags.map((t) => `tag=${t}`).join('&')}`);
+
+		if (!res.ok) {
+			alert('Failed to fetch new image');
+			loading = false;
+			return;
+		}
+
 		const data = await res.blob();
 		const urlCreator = window.URL || window.webkitURL;
 		current = urlCreator.createObjectURL(data);
@@ -36,6 +48,16 @@
 		stopped = false;
 	};
 
+	const toggleTag = (tag: string) => {
+		if (tags.includes(tag)) {
+			tags = tags.filter((t) => t !== tag);
+		} else {
+			tags = [...tags, tag];
+		}
+
+		getNewImage();
+	};
+
 	onMount(() => {
 		const interval = setInterval(() => (stopped || time <= 0 ? null : time--), 1000);
 
@@ -49,9 +71,9 @@
 	});
 </script>
 
-<div class="flex h-screen items-center justify-center">
-	<div class="flex h-[90%] gap-15">
-		<section class="gap 15 flex w-[25vw] flex-col gap-5 p-2 text-center">
+<div class="flex items-center justify-center">
+	<div class="flex w-full justify-between gap-15">
+		<section class="gap 15 flex w-[30%] flex-col gap-5 p-2 text-center">
 			<p class="text-6xl">{new Date(time * 1000).toISOString().slice(11, 19)}</p>
 			<button onclick={getNewImage} class="btn btn-primary">SKIP</button>
 			<div class="flex">
@@ -69,12 +91,36 @@
 			{:else}
 				<button onclick={stopTime} class="btn btn-error">Stop</button>
 			{/if}
+			<details class="dropdown">
+				<summary class="btn m-1">Tags</summary>
+				<ul class="dropdown-content menu z-1 w-52 rounded-box bg-base-100 p-2 shadow-sm">
+					{#each data.tags as tag (tag)}
+						<li>
+							<label
+								class="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-base-200"
+							>
+								<input
+									type="checkbox"
+									class="checkbox checkbox-sm"
+									checked={tags.includes(tag.name)}
+									onchange={() => toggleTag(tag.name)}
+								/>
+								<span class="text-sm">{tag.name}</span>
+							</label>
+						</li>
+					{/each}
+				</ul>
+			</details>
 		</section>
-		<section class="flex w-[70vw] items-center justify-center">
+		<section class="flex h-[85vh] w-[70%] max-w-screen items-center justify-center p-2">
 			{#if loading}
 				<span class="loading loading-xl loading-spinner text-primary"></span>
 			{:else}
-				<img class="h-[100%]" src={current} alt="croqui ref" />
+				<img
+					src={current}
+					class="h-[inherit] max-h-[inherit] w-[inherit] max-w-[inherit] object-scale-down"
+					alt="croqui ref"
+				/>
 			{/if}
 		</section>
 	</div>

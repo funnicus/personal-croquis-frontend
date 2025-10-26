@@ -9,7 +9,7 @@ First populate .env:
 
 ```bash
 npm run dev -- --open
-docker compose --profile minio -f "docker-compose.yml" up -d --no-deps --build
+docker compose --profile minio --profile db -f "docker-compose.yml" up -d --no-deps --build
 ```
 
 For docker debug:
@@ -33,7 +33,28 @@ If you want to manage MinIO stuff, install [AIStor CLient](https://docs.min.io/e
 
 ## TODO:
 
+- Pick specific picture for croqui
+- Localstorage
+- telemetry
+- tests
+- HTTP status constant
+- Pipeline
+- Random with all tags
+- npmrc
+- ssl
+- better blob storage client
+- better migrate port
+- better empty db state
+- Better CSFR https://dev.to/maxiviper117/implementing-csrf-protection-in-sveltekit-3afb
+
 ### Bonus:
 
 1. Extension to autoupload
 2. Throttle large uploads
+3. Query robustness:
+   - Transactions
+   - Delete images that are not uplaoded to db
+4. 3D models
+5. Edit image name
+6. Cleanup all dangling pictures in blob storage
+7. Document dev path
