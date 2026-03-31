@@ -97,7 +97,7 @@
 	</div>
 	{#if !tableView}
 		<section class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 xl:gap-8">
-			{#each rows as item}
+			{#each rows as item (item.name)}
 				<li>
 					<img src={`/api${item.name}`} alt={item.name} />
 				</li>

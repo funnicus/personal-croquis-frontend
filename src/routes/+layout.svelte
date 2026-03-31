@@ -2,6 +2,7 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import Bars from '$lib/components/bars.svelte';
+	import { resolve } from '$app/paths';
 
 	let { children } = $props();
 </script>
@@ -21,18 +22,18 @@
 					tabindex="-1"
 					class="dropdown-content menu z-1 mt-3 w-52 menu-sm rounded-box bg-base-100 p-2 shadow"
 				>
-					<li><a href="/">✏️ Croquis</a></li>
-					<li><a href="/gallery?limit=10">🖼️ Gallery</a></li>
-					<li><a href="/upload">📂 Upload</a></li>
+					<li><a href={resolve('/')}>✏️ Croquis</a></li>
+					<li><a href={resolve('/gallery')}>🖼️ Gallery</a></li>
+					<li><a href={resolve('/upload')}>📂 Upload</a></li>
 				</ul>
 			</div>
-			<a href="/" class="btn text-xl btn-ghost">Croquis Frontend</a>
+			<a href={resolve('/')} class="btn text-xl btn-ghost">Croquis Frontend</a>
 		</div>
 		<div class="navbar-center hidden lg:flex">
 			<ul class="menu menu-horizontal px-1">
-				<li><a href="/">✏️ Croquis</a></li>
-				<li><a href="/gallery?limit=10">🖼️ Gallery</a></li>
-				<li><a href="/upload">📂 Upload</a></li>
+				<li><a href={resolve('/')}>✏️ Croquis</a></li>
+				<li><a href={resolve('/gallery')}>🖼️ Gallery</a></li>
+				<li><a href={resolve('/upload')}>📂 Upload</a></li>
 			</ul>
 		</div>
 		<div class="navbar-end"></div>

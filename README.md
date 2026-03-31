@@ -2,14 +2,15 @@
 
 ## First time setup
 
-First populate .env:
+1. Run `cp .env.example .env`:
 
-1. Run `echo $(id -u):$(id -g)` to see MINIO_USER.
-2. Fill other envs as you like.
+2. Fill envs.
 
+3. Run the following commands:
 ```bash
-npm run dev -- --open
 docker compose --profile minio --profile db -f "docker-compose.yml" up -d --no-deps --build
+npm run migrate:up
+npm run dev -- --open
 ```
 
 For docker debug:
@@ -29,10 +30,11 @@ MinIO frontend can be found at http://localhost:9001.
 
 ## AIStor for MinIO management
 
-If you want to manage MinIO stuff, install [AIStor CLient](https://docs.min.io/enterprise/aistor-object-store/reference/cli/?tab=quickstart-linux). Remember to add to path.
+If you want to manage MinIO stuff, install [AIStor Client](https://docs.min.io/enterprise/aistor-object-store/reference/cli/?tab=quickstart-linux). Remember to add to path.
 
 ## TODO:
 
+- Open images in gallery
 - Pick specific picture for croqui
 - Localstorage
 - telemetry
