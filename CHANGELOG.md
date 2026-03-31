@@ -15,3 +15,4 @@
 
 - Audit fix, update nvmrc
 - Add pipeline and small updates
+- Clickable images in gallery
