@@ -6,7 +6,7 @@ on:
 
 jobs:
   lint:
-    name: "Commit lint"
+    name: 'Commit lint'
     runs-on: ubuntu-latest
 
     steps:
