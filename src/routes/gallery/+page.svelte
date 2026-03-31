@@ -15,6 +15,10 @@
 	let rows: Row[] = $state([...data.images.items]);
 	let tags: Tag[] = $state([...data.tags]);
 	let tableView = $state(true);
+	let lightboxSrc: string | null = $state(null);
+
+	const openLightbox = (src: string) => (lightboxSrc = src);
+	const closeLightbox = () => (lightboxSrc = null);
 
 	const remove = async (name: string) => {
 		const result = await fetch(`/api${name}`, {
@@ -98,11 +102,41 @@
 	{#if !tableView}
 		<section class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 xl:gap-8">
 			{#each rows as item (item.name)}
-				<li>
-					<img src={`/api${item.name}`} alt={item.name} />
-				</li>
+				<button
+					class="cursor-pointer border-0 bg-transparent p-0"
+					onclick={() => openLightbox(`/api${item.name}`)}
+					aria-label={`View ${item.name} fullscreen`}
+				>
+					<img
+						src={`/api${item.name}`}
+						alt={item.name}
+						class="transition-opacity duration-200 hover:opacity-80"
+					/>
+				</button>
 			{/each}
 		</section>
+
+		{#if lightboxSrc}
+			<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+				<button
+					class="absolute inset-0 h-full w-full bg-black/80"
+					onclick={closeLightbox}
+					aria-label="Close fullscreen"
+				></button>
+				<button
+					class="btn absolute top-4 right-4 btn-circle text-xl text-white btn-ghost"
+					onclick={closeLightbox}
+					aria-label="Close fullscreen"
+				>
+					✕
+				</button>
+				<img
+					src={lightboxSrc}
+					alt="Fullscreen view"
+					class="relative max-h-full max-w-full rounded-lg object-contain shadow-2xl"
+				/>
+			</div>
+		{/if}
 	{:else}
 		<div>
 			<table class="table w-full table-zebra">
