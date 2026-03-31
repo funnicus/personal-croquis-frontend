@@ -10,3 +10,7 @@
 - Add minio
 - Add gallery, add image api
 - Add database for image metadata, add tag system for filtration, add tabular gallery
+
+### ⚙️ Miscellaneous Tasks
+
+- Audit fix, update nvmrc
