@@ -46,6 +46,10 @@ If you want to manage MinIO stuff, install [AIStor CLient](https://docs.min.io/e
 - better migrate port
 - better empty db state
 - Better CSFR https://dev.to/maxiviper117/implementing-csrf-protection-in-sveltekit-3afb
+- Better content length (can't upload over 4 images)
+- only uploads a single image
+- new tags not updating to existing list when added
+- autoclose new tag menu when clicked outside
 
 ### Bonus:
 
@@ -58,3 +62,10 @@ If you want to manage MinIO stuff, install [AIStor CLient](https://docs.min.io/e
 5. Edit image name
 6. Cleanup all dangling pictures in blob storage
 7. Document dev path
+8. Users and login
+9. Stripe
+10. Fonts
+11. Icons
+12. Analytics
+13. Landing page
+14. SEO
