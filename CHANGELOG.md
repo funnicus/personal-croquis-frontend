@@ -14,3 +14,4 @@
 ### ⚙️ Miscellaneous Tasks
 
 - Audit fix, update nvmrc
+- Add pipeline and small updates
