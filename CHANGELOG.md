@@ -16,3 +16,4 @@
 - Audit fix, update nvmrc
 - Add pipeline and small updates
 - Clickable images in gallery
+- Update README, fix lint issues
