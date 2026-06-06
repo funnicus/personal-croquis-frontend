@@ -1,6 +1,25 @@
 # Personal Croqui Frontend
 
-## First time setup
+## Quickstart
+
+1. Run `cp .env.example .env`:
+
+2. Fill envs.
+
+3. Run the following commands:
+
+```bash
+docker compose up -d
+npm i
+npm run migrate:up
+
+# WHEN DONE
+docker compose down 
+```
+
+Open http://localhost:3000 and enjoy!
+
+## First time dev setup
 
 1. Run `cp .env.example .env`:
 
