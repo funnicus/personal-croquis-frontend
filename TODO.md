@@ -2,7 +2,6 @@
 
 - Pick specific picture for croqui
 - Localstorage
-- telemetry
 - tests
 - HTTP status constant
 - Pipeline

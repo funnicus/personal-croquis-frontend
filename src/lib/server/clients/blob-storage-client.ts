@@ -9,7 +9,7 @@ const get = () => {
 
 	minioClient = new Minio.Client({
 		endPoint: env.BLOB_STORAGE_END_POINT,
-		port: env.BLOB_STORAGE_PORT,
+		port: Number(env.BLOB_STORAGE_PORT),
 		useSSL: false,
 		accessKey: env.MINIO_ROOT_USER,
 		secretKey: env.MINIO_ROOT_PASSWORD

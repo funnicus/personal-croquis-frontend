@@ -47,6 +47,10 @@ services:
       - '${FRONTEND_PORT}:3000'
     env_file:
       - .env
+    # OVERRIDE certain environment variables to use docker services
+    environment:
+      DATABASE_HOST: db
+      BLOB_STORAGE_END_POINT: minio
     # For linux host machines to access host services from inside Docker containers
     extra_hosts:
       - 'host.docker.internal:host-gateway'

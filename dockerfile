@@ -1,5 +1,5 @@
 # Use a Node.js Alpine image for the builder stage
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
@@ -8,7 +8,7 @@ RUN npm run build
 RUN npm prune --production
 
 # Use another Node.js Alpine image for the final stage
-FROM node:22-alpine
+FROM node:24-alpine
 WORKDIR /app
 COPY --from=builder /app/build build/
 COPY --from=builder /app/node_modules node_modules/

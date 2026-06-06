@@ -3,7 +3,7 @@ import { imageService } from '$lib/server/image/image-service';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
-	const limit = Number(url.searchParams.get('limit')) || 50;
+	const limit = Number(url.searchParams.get('limit')) || 1000;
 
 	return {
 		tags: await imageQueries.getAllTags(),

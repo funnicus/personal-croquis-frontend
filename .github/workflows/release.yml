@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: read
     outputs:
       release_body: ${{ steps.git-cliff.outputs.content }}
     steps:

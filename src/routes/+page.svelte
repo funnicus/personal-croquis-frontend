@@ -15,8 +15,13 @@
 
 	let loading = $state(true);
 	let stopped = $state(false);
+	let fullscreen = $state(false);
 
 	let tags: string[] = $state([]);
+
+	const toggleFullscreen = () => {
+		fullscreen = !fullscreen;
+	};
 
 	const getNewImage = async () => {
 		loading = true;
@@ -61,7 +66,20 @@
 	onMount(() => {
 		const interval = setInterval(() => (stopped || time <= 0 ? null : time--), 1000);
 
-		return () => clearInterval(interval);
+		const onKeyDown = (e: KeyboardEvent) => {
+			if (e.code === 'Space' && !(e.target instanceof HTMLInputElement)) {
+				e.preventDefault();
+				if (stopped) resumeTime();
+				else stopTime();
+			}
+		};
+
+		window.addEventListener('keydown', onKeyDown);
+
+		return () => {
+			clearInterval(interval);
+			window.removeEventListener('keydown', onKeyDown);
+		};
 	});
 
 	$effect(() => {
@@ -116,11 +134,21 @@
 			{#if loading}
 				<span class="loading loading-xl loading-spinner text-primary"></span>
 			{:else}
-				<img
-					src={current}
-					class="h-[inherit] max-h-[inherit] w-[inherit] max-w-[inherit] object-scale-down"
-					alt="croqui ref"
-				/>
+				<button
+					class="{fullscreen
+						? 'fixed inset-0 z-50 flex h-screen w-screen items-center justify-center bg-black'
+						: 'flex h-full w-full items-center justify-center'} border-none bg-transparent p-0"
+					onclick={toggleFullscreen}
+					aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+				>
+					<img
+						src={current}
+						class={fullscreen
+							? 'h-screen w-screen cursor-zoom-out object-contain'
+							: 'h-[inherit] max-h-[inherit] w-[inherit] max-w-[inherit] cursor-zoom-in object-scale-down'}
+						alt="croqui ref"
+					/>
+				</button>
 			{/if}
 		</section>
 	</div>
