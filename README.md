@@ -14,7 +14,7 @@ npm i
 npm run migrate:up
 
 # WHEN DONE
-docker compose down 
+docker compose down
 ```
 
 Open http://localhost:3000 and enjoy!
