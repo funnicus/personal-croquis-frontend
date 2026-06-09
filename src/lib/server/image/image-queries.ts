@@ -1,21 +1,74 @@
 import { sql } from 'kysely';
 import { db } from '../clients/database-client';
 
-const selectMany = async (limit?: number) =>
-	await db
+const selectMany = async (limit: number, tags?: string[]) => {
+	if (!tags?.length) {
+		const images = await db
+			.selectFrom('image')
+			.selectAll()
+			.orderBy('image.uploaded_at', 'desc')
+			.limit(limit)
+			.execute();
+
+		return images;
+	}
+
+	const images = await db
 		.selectFrom('image')
-		.selectAll()
+		.innerJoin('image_tags as it', 'it.image_id', 'image.id')
+		.innerJoin('tag as t', 't.id', 'it.tag_id')
+		.selectAll('image')
+		.distinct()
+		.where('t.name', 'in', tags ?? [])
 		.orderBy('image.uploaded_at', 'desc')
-		.limit(limit ?? 30)
+		.limit(limit)
 		.execute();
 
-const selectOne = async (key: string) => {
-	const image = await db.selectFrom('image').where('image.name', '=', key).selectAll().execute();
-	return image[0];
+	return images;
 };
 
-// const updateOne = async (key: string, tags: string[]) =>
-// 	await db.updateTable('image').set({ tags }).where('image.name', '=', key).execute();
+const selectOne = async (key: string) => {
+	const image = await db
+		.selectFrom('image')
+		.where('image.name', '=', key)
+		.selectAll()
+		.executeTakeFirst();
+
+	return image;
+};
+
+// const updateOne = async (key: string, tags: string[]) => {
+// 	await db.transaction().execute(async (trx) => {
+// 		await db.updateTable('image').set({ tags }).where('image.name', '=', key).execute();
+// 	});
+// };
+
+const getTagIdsByNames = async (names: string[]) => {
+	if (!names.length) return [];
+
+	const rows = await db.selectFrom('tag').select(['id']).where('name', 'in', names).execute();
+
+	return rows.map((r) => r.id);
+};
+
+const replaceImageTags = async (imageId: number, tagIds: number[]) => {
+	await db.transaction().execute(async (trx) => {
+		await trx.deleteFrom('image_tags').where('image_id', '=', imageId).execute();
+
+		if (tagIds.length) {
+			await trx
+				.insertInto('image_tags')
+				.values(
+					tagIds.map((tagId) => ({
+						image_id: imageId,
+						tag_id: tagId
+					}))
+				)
+				.onConflict((oc) => oc.columns(['image_id', 'tag_id']).doNothing())
+				.execute();
+		}
+	});
+};
 
 /**
  *  If performance becomes a problem, see https://stackoverflow.com/questions/8674718/best-way-to-select-random-rows-postgresql
@@ -30,21 +83,18 @@ const getRandom = async (tags?: string[]) => {
 			.executeTakeFirst();
 	}
 
-	const filteredImages = await db
-		.selectFrom('image_tags as it')
+	const matchingImages = db
+		.selectFrom('image')
+		.innerJoin('image_tags as it', 'it.image_id', 'image.id')
 		.innerJoin('tag as t', 't.id', 'it.tag_id')
+		.selectAll('image')
 		.where('t.name', 'in', tags ?? [])
-		.selectAll()
-		.execute();
+		.distinct()
+		.as('matching_images');
 
 	return db
-		.selectFrom('image')
+		.selectFrom(matchingImages)
 		.selectAll()
-		.where(
-			'image.id',
-			'in',
-			filteredImages.map((fi) => fi.image_id)
-		)
 		.orderBy(sql`RANDOM()`)
 		.limit(1)
 		.executeTakeFirst();
@@ -52,23 +102,6 @@ const getRandom = async (tags?: string[]) => {
 
 const createMany = async (images: Array<{ name: string }>) =>
 	await db.insertInto('image').values(images).execute();
-
-const createTag = async (image_name: string, tag_name: string) => {
-	await db
-		.insertInto('tag')
-		.values({ name: tag_name })
-		.onConflict((oc) => oc.column('name').doNothing())
-		.execute();
-
-	await db
-		.insertInto('image_tags')
-		.values({
-			image_id: sql`(SELECT id FROM image WHERE name = ${image_name})`,
-			tag_id: sql`(SELECT id FROM tag WHERE name = ${tag_name})`
-		})
-		.onConflict((oc) => oc.columns(['image_id', 'tag_id']).doNothing())
-		.execute();
-};
 
 const insertImageTags = async (imageId: number, tagIds: number[]) => {
 	const values = tagIds.map((tagId) => ({
@@ -118,22 +151,22 @@ const getImageTags = async (imageId: number) =>
 		.selectAll()
 		.execute();
 
-const getAllTags = async () => await db.selectFrom('tag').selectAll().orderBy('tag.name').execute();
-
 const deleteOne = async (key: string) => {
 	await db.deleteFrom('image').where('image.name', '=', key).execute();
 };
 
-export const imageQueries = {
+const imageQueries = {
 	selectOne,
 	selectMany,
 	getRandom,
+	replaceImageTags,
+	getTagIdsByNames,
 	//updateOne,
 	createMany,
-	createTag,
 	insertImageTags,
 	deleteImageTag,
 	getImageTags,
-	getAllTags,
 	deleteOne
 };
+
+export default imageQueries;

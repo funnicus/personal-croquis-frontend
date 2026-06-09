@@ -25,3 +25,12 @@ export interface ImageTagsTable {
 	image_id: number;
 	tag_id: number;
 }
+
+export type Tag = { id: number; name: string };
+
+export type Row = {
+	id: number;
+	name: string;
+	uploaded_at: string | Date;
+	tags: Tag[];
+};

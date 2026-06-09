@@ -1,6 +1,7 @@
 import type { RequestHandler } from './$types';
 import { imageService } from '$lib/server/image/image-service';
 import { redirect } from '@sveltejs/kit';
+import { StatusCodes } from 'http-status-codes';
 
 export const GET: RequestHandler = async ({ url }) => {
 	const limit = Number(url.searchParams.get('limit')) || 50;
@@ -8,7 +9,8 @@ export const GET: RequestHandler = async ({ url }) => {
 	const { items, nextCursor } = await imageService.getMany(limit);
 
 	return new Response(JSON.stringify({ items, nextCursor }), {
-		headers: { 'content-type': 'application/json' }
+		headers: { 'content-type': 'application/json' },
+		status: StatusCodes.OK
 	});
 };
 
@@ -18,11 +20,11 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	if (files.length === 0) {
 		return new Response(JSON.stringify({ error: 'No files provided under "images"' }), {
-			status: 400
+			status: StatusCodes.BAD_REQUEST
 		});
 	}
 
 	await imageService.createMany(files);
 
-	return redirect(303, '/gallery');
+	return redirect(StatusCodes.SEE_OTHER, '/gallery');
 };

@@ -1,5 +1,6 @@
 # TODO:
 
+- Every picture only once mode
 - Pick specific picture for croqui
 - Localstorage
 - tests

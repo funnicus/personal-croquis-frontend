@@ -46,7 +46,7 @@ MinIO frontend can be found at http://localhost:9001.
 
 ## Deploy
 
-`docker compose -f "docker-compose.yml" up -d --build`
+`docker compose up -d --build`
 
 ## AIStor for MinIO management
 

@@ -1,6 +1,7 @@
 import type { RequestHandler } from './$types';
 import { imageService } from '$lib/server/image/image-service';
 import { CACHE_CONTROL_HEADER } from '../../../../constants';
+import { StatusCodes } from 'http-status-codes';
 
 export const GET: RequestHandler = async ({ params, setHeaders }) => {
 	const key = params.key;
@@ -23,5 +24,7 @@ export const DELETE: RequestHandler = async ({ params }) => {
 
 	await imageService.deleteOne(`/images/${key}`);
 
-	return new Response(null, { status: 204 });
+	return new Response(null, {
+		status: StatusCodes.NO_CONTENT
+	});
 };

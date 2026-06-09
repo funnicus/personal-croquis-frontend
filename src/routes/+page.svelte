@@ -1,19 +1,23 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
+	import { browser } from '$app/environment';
+
 	import type { PageProps } from './$types';
+
+	const DEFAULT_TIME = 60;
 
 	let { data }: PageProps = $props();
 
 	let current = $state<string | null>(null);
 
-	let time = $state(0);
-	let timeOnReset = $state(60);
+	let timeOnReset = $state(DEFAULT_TIME);
+	let time = $state(DEFAULT_TIME);
 
 	let hours = $state(0);
 	let minutes = $state(1);
 	let seconds = $state(0);
 
-	let loading = $state(true);
+	let loading = $state(false);
 	let stopped = $state(false);
 	let fullscreen = $state(false);
 
@@ -24,6 +28,8 @@
 	};
 
 	const getNewImage = async () => {
+		if (!browser) return;
+
 		loading = true;
 		const res = await fetch(`/api/images/random?${tags.map((t) => `tag=${t}`).join('&')}`);
 
@@ -34,9 +40,29 @@
 		}
 
 		const data = await res.blob();
+		const imgeName = res.headers.get('X-Image-Filename');
+		if (imgeName) localStorage.setItem('currentImage', imgeName);
+		const urlCreator = window.URL || window.webkitURL;
+
+		current = urlCreator.createObjectURL(data);
+
+		loading = false;
+	};
+
+	const getImageByName = async (name: string) => {
+		loading = true;
+		const res = await fetch(`/api${name}`);
+
+		if (!res.ok) {
+			alert('Failed to fetch new image');
+			loading = false;
+			return;
+		}
+
+		const data = await res.blob();
 		const urlCreator = window.URL || window.webkitURL;
 		current = urlCreator.createObjectURL(data);
-		time = timeOnReset;
+
 		loading = false;
 	};
 
@@ -64,7 +90,7 @@
 	};
 
 	onMount(() => {
-		const interval = setInterval(() => (stopped || time <= 0 ? null : time--), 1000);
+		if (!browser) return;
 
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (e.code === 'Space' && !(e.target instanceof HTMLInputElement)) {
@@ -76,15 +102,40 @@
 
 		window.addEventListener('keydown', onKeyDown);
 
+		const savedCurrent = localStorage.getItem('currentImage');
+		const savedTime = localStorage.getItem('time');
+		const savedTimeOnReset = localStorage.getItem('timeOnReset');
+		const savedStopped = localStorage.getItem('stopped');
+
+		if (savedTime) time = parseInt(savedTime);
+		if (savedTimeOnReset) timeOnReset = parseInt(savedTimeOnReset);
+		if (savedStopped) stopped = savedStopped === 'true';
+		if (savedCurrent) {
+			getImageByName(savedCurrent);
+		} else {
+			getNewImage();
+		}
+
+		const interval = setInterval(() => (stopped || time <= 0 ? null : time--), 1000);
+
 		return () => {
 			clearInterval(interval);
 			window.removeEventListener('keydown', onKeyDown);
 		};
 	});
 
+	onDestroy(() => {
+		if (!browser) return;
+
+		localStorage.setItem('time', time.toString());
+		localStorage.setItem('timeOnReset', timeOnReset.toString());
+		localStorage.setItem('stopped', stopped.toString());
+	});
+
 	$effect(() => {
 		if (time <= 0) {
 			getNewImage();
+			time = timeOnReset;
 		}
 	});
 </script>

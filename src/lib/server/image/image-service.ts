@@ -1,10 +1,6 @@
+import { isFulfilled, isRejected } from '$lib/utils';
 import { blobStorageClient } from '../clients/blob-storage-client';
-import { imageQueries } from './image-queries';
-
-const isFulfilled = <T>(p: PromiseSettledResult<T>): p is PromiseFulfilledResult<T> =>
-	p.status === 'fulfilled';
-const isRejected = <T>(p: PromiseSettledResult<T>): p is PromiseRejectedResult =>
-	p.status === 'rejected';
+import imageQueries from './image-queries';
 
 const getMany = async (limit?: number) => {
 	const parsed_limit = Math.min(Number(limit ?? 30), 100);
@@ -58,6 +54,7 @@ const getRandom = async (tags?: string[]) => {
 		'application/octet-stream';
 
 	return {
+		name: dbData.name,
 		contentType,
 		...blobData
 	};

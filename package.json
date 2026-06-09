@@ -50,6 +50,7 @@
 	"dependencies": {
 		"daisyui": "^5.1.29",
 		"dotenv": "^17.2.3",
+		"http-status-codes": "^2.1.4",
 		"kysely": "^0.28.8",
 		"minio": "^8.0.6",
 		"pg": "^8.16.3"

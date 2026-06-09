@@ -1,21 +1,20 @@
 <script lang="ts">
+	import type { Row, Tag } from '../../types';
 	import type { PageProps } from './$types';
+	import EditTagsButton from '$lib/components/gallery/EditTagsButton.svelte';
+	import clientTagService from '$lib/client/tagService';
 
 	let { data }: PageProps = $props();
 
-	type Tag = { id: number; name: string };
-
-	type Row = {
-		id: number;
-		name: string;
-		uploaded_at: string | Date;
-		tags: Tag[];
-	};
-
-	let rows: Row[] = $state([...data.images.items]);
-	let tags: Tag[] = $state([...data.tags]);
+	let rows: Row[] = $state([]);
+	let tags: Tag[] = $state([]);
 	let tableView = $state(true);
 	let lightboxSrc: string | null = $state(null);
+
+	$effect(() => {
+		rows = [...data.images.items];
+		tags = [...data.tags];
+	});
 
 	const openLightbox = (src: string) => (lightboxSrc = src);
 	const closeLightbox = () => (lightboxSrc = null);
@@ -44,37 +43,35 @@
 
 	// add a brand-new tag (to the row + notify parent to add globally)
 	const addNewTag = async (row: Row, value: string) => {
-		const result = await fetch(`/api${row.name}/tags`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({ image_name: row.name, tag_name: value })
+		await clientTagService.addNewTagToImage(row.name, value);
+
+		rows = rows.map((r) => {
+			if (r.id === row.id) {
+				return { ...r, tags: [...r.tags, { id: -1, name: value }] };
+			}
+			return r;
 		});
 
-		if (!result.ok) {
-			alert('Failed to create new tag');
-			return;
+		if (!tags.map((t) => t.name).includes(value)) {
+			tags = [...tags, { id: -1, name: value }];
 		}
-
-		row.tags = [...row.tags, { id: -1, name: value }];
 	};
 
 	const removeTag = async (row: Row, tag: string) => {
-		const result = await fetch(`/api${row.name}/tags`, {
-			method: 'DELETE',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({ image_name: row.name, tag_name: tag })
+		await clientTagService.removeTagFromImage(row.name, tag);
+
+		rows = rows.map((r) => {
+			if (r.id === row.id) {
+				return { ...r, tags: r.tags.filter((t) => t.name !== tag) };
+			}
+			return r;
 		});
 
-		if (!result.ok) {
-			alert('Failed to remove tag');
-			return;
+		const tagUsed = rows.some((r) => r.tags.map((t) => t.name).includes(tag));
+		if (!tagUsed) {
+			tags = tags.filter((t) => t.name !== tag);
 		}
-
-		row.tags = row.tags.filter((t) => t.name !== tag);
+		await clientTagService.removeTag(tag);
 	};
 
 	function formatDate(d: Date) {
@@ -144,9 +141,8 @@
 					<tr>
 						<th class="w-16">Image</th>
 						<th>Name</th>
-						<th>Tags</th>
 						<th class="whitespace-nowrap">Uploaded at</th>
-						<th class="w-24 text-center">Actions</th>
+						<th class="w-68 text-center">Actions</th>
 					</tr>
 				</thead>
 
@@ -170,64 +166,6 @@
 								<span>{row.name.split('/images/').pop()}</span>
 							</td>
 
-							<!-- Editable tags -->
-							<td>
-								<div class="flex flex-wrap items-center gap-2">
-									{#each row.tags as tag (tag)}
-										<span class="badge badge-outline">{tag.name}</span>
-									{/each}
-
-									<details class="dropdown">
-										<summary class="btn m-1">Edit tags</summary>
-										<div
-											class="dropdown-content card-compact menu card z-[1] w-72 bg-base-100 p-3 shadow"
-										>
-											<div class="max-h-60 overflow-auto pr-1">
-												{#if tags.length === 0}
-													<p class="px-1 py-1 text-sm opacity-70">No tags yet.</p>
-												{/if}
-												{#each tags as t (t)}
-													<label
-														class="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-base-200"
-													>
-														<input
-															type="checkbox"
-															class="checkbox checkbox-sm"
-															checked={row.tags.map((t) => t.name).includes(t.name)}
-															onchange={() => toggleTag(row, t.name)}
-														/>
-														<span class="text-sm">{t.name}</span>
-													</label>
-												{/each}
-											</div>
-
-											<div class="divider my-2"></div>
-
-											<div class="join w-full">
-												<input
-													class="input-bordered input input-sm join-item w-full"
-													placeholder="Add new tag"
-													onkeydown={(e) => {
-														if (e.key === 'Enter') addNewTag(row, e.currentTarget.value);
-													}}
-												/>
-												<button
-													class="btn join-item btn-sm"
-													onclick={(e) =>
-														addNewTag(
-															row,
-															(e.currentTarget.previousElementSibling as HTMLInputElement)?.value ||
-																''
-														)}
-												>
-													Add
-												</button>
-											</div>
-										</div>
-									</details>
-								</div>
-							</td>
-
 							<!-- Uploaded at -->
 							<td class="text-sm text-base-content/70">
 								{formatDate(row.uploaded_at as Date)}
@@ -235,6 +173,7 @@
 
 							<!-- Delete -->
 							<td class="text-center">
+								<EditTagsButton {tags} {row} {toggleTag} {addNewTag} />
 								<button
 									class="btn btn-sm btn-error"
 									onclick={() => remove(row.name)}
