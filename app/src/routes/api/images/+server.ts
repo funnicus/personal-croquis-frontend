@@ -6,8 +6,15 @@ import { imageTaggingService } from '$lib/server/image/image-tagging-service';
 
 export const GET: RequestHandler = async ({ url }) => {
 	const limit = Number(url.searchParams.get('limit')) || 50;
+	const tags = url.searchParams.getAll('tag');
+	const cursorUploadedAt = url.searchParams.get('cursorUploadedAt');
+	const cursorId = Number(url.searchParams.get('cursorId'));
+	const cursor =
+		cursorUploadedAt && Number.isFinite(cursorId)
+			? { uploaded_at: cursorUploadedAt, id: cursorId }
+			: null;
 
-	const { items, nextCursor } = await imageService.getMany(limit);
+	const { items, nextCursor } = await imageService.getMany({ cursor, limit, tags });
 
 	return new Response(JSON.stringify({ items, nextCursor }), {
 		headers: { 'content-type': 'application/json' },

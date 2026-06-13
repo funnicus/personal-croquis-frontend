@@ -1,28 +1,49 @@
-import { sql } from 'kysely';
+import { sql, type SqlBool } from 'kysely';
 import { db } from '../clients/database-client';
+import type { ImageCursor } from '../../../types';
 
-const selectMany = async (limit: number, tags?: string[]) => {
+type SelectManyOptions = {
+	cursor?: ImageCursor | null;
+	limit: number;
+	tags?: string[];
+};
+
+const selectMany = async ({ cursor, limit, tags }: SelectManyOptions) => {
+	const applyCursor = <T extends ReturnType<typeof db.selectFrom<'image'>>>(query: T): T => {
+		if (!cursor) return query;
+
+		return query.where(
+			sql<SqlBool>`(image.uploaded_at, image.id) < (${String(cursor.uploaded_at)}::timestamp, ${cursor.id})`
+		) as T;
+	};
+
 	if (!tags?.length) {
-		const images = await db
+		const query = db
 			.selectFrom('image')
-			.selectAll()
+			.selectAll('image')
+			.select(sql<string>`image.uploaded_at::text`.as('cursor_uploaded_at'))
 			.orderBy('image.uploaded_at', 'desc')
-			.limit(limit)
-			.execute();
+			.orderBy('image.id', 'desc')
+			.limit(limit);
+
+		const images = await applyCursor(query).execute();
 
 		return images;
 	}
 
-	const images = await db
+	const query = db
 		.selectFrom('image')
 		.innerJoin('image_tags as it', 'it.image_id', 'image.id')
 		.innerJoin('tag as t', 't.id', 'it.tag_id')
 		.selectAll('image')
+		.select(sql<string>`image.uploaded_at::text`.as('cursor_uploaded_at'))
 		.distinct()
 		.where('t.name', 'in', tags ?? [])
 		.orderBy('image.uploaded_at', 'desc')
-		.limit(limit)
-		.execute();
+		.orderBy('image.id', 'desc')
+		.limit(limit);
+
+	const images = await applyCursor(query).execute();
 
 	return images;
 };

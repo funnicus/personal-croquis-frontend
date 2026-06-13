@@ -1,14 +1,22 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import { browser } from '$app/environment';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
+	import { getResponseErrorMessage } from '$lib/client/http';
+	import EditTagsButton from '$lib/components/gallery/EditTagsButton.svelte';
+	import clientTagService from '$lib/client/tagService';
+	import { getDisplayTag, getGroupedTags } from '$lib/tag-display';
+	import { toast } from '$lib/toasts';
 
 	import type { PageProps } from './$types';
+	import type { Row, Tag } from '../types';
 
 	const DEFAULT_TIME = 60;
 
 	let { data }: PageProps = $props();
 
 	let current = $state<string | null>(null);
+	let currentRow: Row | null = $state(null);
 
 	let timeOnReset = $state(DEFAULT_TIME);
 	let time = $state(DEFAULT_TIME);
@@ -21,65 +29,18 @@
 	let stopped = $state(false);
 	let fullscreen = $state(false);
 
-	let tags: string[] = $state([]);
+	let availableTags: Tag[] = $derived([...data.tags]);
+	let selectedTags: string[] = $state([]);
+	let pendingAddRows: number[] = $state([]);
+	let pendingTagKeys: string[] = $state([]);
+	let imageRequestId = 0;
 
-	const humanizeTagPart = (value: string) =>
-		value
-			.split(/[_-]+/)
-			.filter(Boolean)
-			.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-			.join(' ');
-
-	const getTagParts = (name: string) => {
-		const separatorIndex = name.indexOf('/');
-
-		if (separatorIndex === -1) {
-			return {
-				category: 'uncategorized',
-				categoryLabel: 'Uncategorized',
-				label: humanizeTagPart(name)
-			};
-		}
-
-		const category = name.slice(0, separatorIndex);
-		const tagName = name.slice(separatorIndex + 1);
-
-		return {
-			category,
-			categoryLabel: humanizeTagPart(category),
-			label: humanizeTagPart(tagName)
-		};
-	};
-
-	const getGroupedTags = (tagOptions: Array<{ name: string }>) => {
-		const groups = new Map<
-			string,
-			{ category: string; categoryLabel: string; tags: Array<{ name: string; label: string }> }
-		>();
-
-		for (const tag of tagOptions) {
-			const parts = getTagParts(tag.name);
-			const group = groups.get(parts.category) ?? {
-				category: parts.category,
-				categoryLabel: parts.categoryLabel,
-				tags: []
-			};
-
-			group.tags.push({ name: tag.name, label: parts.label });
-			groups.set(parts.category, group);
-		}
-
-		return Array.from(groups.values())
-			.map((group) => ({
-				...group,
-				tags: group.tags.sort((a, b) => a.label.localeCompare(b.label))
-			}))
-			.sort((a, b) => a.categoryLabel.localeCompare(b.categoryLabel));
-	};
+	const groupedTags = $derived(getGroupedTags(availableTags));
 
 	const getTagQuery = () => {
-		const params = new URLSearchParams();
-		tags.forEach((tag) => params.append('tag', tag));
+		const params = new SvelteURLSearchParams();
+		params.set('format', 'json');
+		selectedTags.forEach((tag) => params.append('tag', tag));
 		return params.toString();
 	};
 
@@ -89,42 +50,61 @@
 
 	const getNewImage = async () => {
 		if (!browser) return;
+		if (loading) return;
 
+		const requestId = imageRequestId + 1;
+		imageRequestId = requestId;
 		loading = true;
-		const tagQuery = getTagQuery();
-		const res = await fetch(`/api/images/random${tagQuery ? `?${tagQuery}` : ''}`);
 
-		if (!res.ok) {
-			alert('Failed to fetch new image. Have you uploaded images to the blob storage?');
-			loading = false;
-			return;
+		try {
+			const res = await fetch(`/api/images/random?${getTagQuery()}`);
+
+			if (requestId !== imageRequestId) return;
+
+			if (!res.ok) {
+				toast.error(
+					await getResponseErrorMessage(
+						res,
+						'Failed to fetch new image. Have you uploaded images to the blob storage?'
+					)
+				);
+				return;
+			}
+
+			const body = (await res.json()) as { image: Row };
+
+			if (requestId !== imageRequestId) return;
+
+			currentRow = body.image;
+			current = `/api${body.image.name}`;
+			localStorage.setItem('currentImage', body.image.name);
+		} catch {
+			toast.error('Failed to fetch new image');
+		} finally {
+			if (requestId === imageRequestId) {
+				loading = false;
+			}
 		}
-
-		const data = await res.blob();
-		const imgeName = res.headers.get('X-Image-Filename');
-		if (imgeName) localStorage.setItem('currentImage', imgeName);
-		const urlCreator = window.URL || window.webkitURL;
-
-		current = urlCreator.createObjectURL(data);
-
-		loading = false;
 	};
 
 	const getImageByName = async (name: string) => {
+		if (loading) return;
 		loading = true;
-		const res = await fetch(`/api${name}`);
+		try {
+			const res = await fetch(`/api${name}/tags`);
 
-		if (!res.ok) {
-			alert('Failed to fetch new image');
+			if (!res.ok) {
+				toast.error(await getResponseErrorMessage(res, 'Failed to fetch image'));
+				return;
+			}
+
+			currentRow = (await res.json()) as Row;
+			current = `/api${currentRow.name}`;
+		} catch {
+			toast.error('Failed to fetch image');
+		} finally {
 			loading = false;
-			return;
 		}
-
-		const data = await res.blob();
-		const urlCreator = window.URL || window.webkitURL;
-		current = urlCreator.createObjectURL(data);
-
-		loading = false;
 	};
 
 	const setTime = () => {
@@ -140,14 +120,75 @@
 		stopped = false;
 	};
 
-	const toggleTag = (tag: string) => {
-		if (tags.includes(tag)) {
-			tags = tags.filter((t) => t !== tag);
+	const toggleFilterTag = (tag: string) => {
+		if (selectedTags.includes(tag)) {
+			selectedTags = selectedTags.filter((t) => t !== tag);
 		} else {
-			tags = [...tags, tag];
+			selectedTags = [...selectedTags, tag];
 		}
 
 		getNewImage();
+	};
+
+	const tagKey = (row: Row, tag: string) => `${row.id}:${tag}`;
+	const getRowTagNames = (row: Row) => new Set(row.tags.map((tag) => tag.name));
+	const isAddPending = (row: Row) => pendingAddRows.includes(row.id);
+	const isTagPending = (row: Row, tag: string) => pendingTagKeys.includes(tagKey(row, tag));
+
+	const toggleImageTag = async (row: Row, tag: string) => {
+		if (row.tags.map((t) => t.name).includes(tag)) {
+			await removeTag(row, tag);
+		} else {
+			await addNewTag(row, tag);
+		}
+	};
+
+	const addNewTag = async (row: Row, value: string) => {
+		const tagName = value.trim();
+		if (!tagName || isAddPending(row)) return;
+		pendingAddRows = [...pendingAddRows, row.id];
+
+		try {
+			const result = await clientTagService.addNewTagToImage(row.name, tagName);
+			if (!result.ok) {
+				toast.error(result.message);
+				return;
+			}
+
+			currentRow = {
+				...row,
+				tags: row.tags.some((tag) => tag.name === tagName)
+					? row.tags
+					: [...row.tags, { id: -1, name: tagName }]
+			};
+
+			if (!availableTags.map((tag) => tag.name).includes(tagName)) {
+				availableTags = [...availableTags, { id: -1, name: tagName }];
+			}
+		} finally {
+			pendingAddRows = pendingAddRows.filter((id) => id !== row.id);
+		}
+	};
+
+	const removeTag = async (row: Row, tag: string) => {
+		const key = tagKey(row, tag);
+		if (pendingTagKeys.includes(key)) return;
+		pendingTagKeys = [...pendingTagKeys, key];
+
+		try {
+			const result = await clientTagService.removeTagFromImage(row.name, tag);
+			if (!result.ok) {
+				toast.error(result.message);
+				return;
+			}
+
+			currentRow = {
+				...row,
+				tags: row.tags.filter((item) => item.name !== tag)
+			};
+		} finally {
+			pendingTagKeys = pendingTagKeys.filter((item) => item !== key);
+		}
 	};
 
 	onMount(() => {
@@ -195,8 +236,10 @@
 
 	$effect(() => {
 		if (time <= 0) {
-			getNewImage();
 			time = timeOnReset;
+			untrack(() => {
+				void getNewImage();
+			});
 		}
 	});
 </script>
@@ -205,7 +248,9 @@
 	<div class="flex w-full justify-between gap-15">
 		<section class="gap 15 flex w-[30%] flex-col gap-5 p-2 text-center">
 			<p class="text-6xl">{new Date(time * 1000).toISOString().slice(11, 19)}</p>
-			<button onclick={getNewImage} class="btn btn-primary">SKIP</button>
+			<button onclick={getNewImage} class="btn btn-primary" disabled={loading}>
+				{loading ? 'LOADING' : 'SKIP'}
+			</button>
 			<div class="flex">
 				<input id="h" type="number" class="input" bind:value={hours} min="0" /><span
 					class="text-2xl">:</span
@@ -221,15 +266,48 @@
 			{:else}
 				<button onclick={stopTime} class="btn btn-error">Stop</button>
 			{/if}
+			{#if currentRow}
+				<div class="rounded-box border border-base-300 bg-base-100 text-left">
+					<div class="flex items-center justify-between gap-2 border-b border-base-300 px-3 py-2">
+						<div>
+							<h2 class="text-sm font-semibold">Current image</h2>
+							<p class="truncate text-xs text-base-content/60">
+								{currentRow.name.split('/images/').pop()}
+							</p>
+						</div>
+						<EditTagsButton
+							{groupedTags}
+							row={currentRow}
+							rowTagNames={getRowTagNames(currentRow)}
+							toggleTag={toggleImageTag}
+							{addNewTag}
+							{isTagPending}
+							{isAddPending}
+						/>
+					</div>
+					<div class="flex flex-wrap gap-1 p-3">
+						{#if currentRow.tags.length}
+							{#each currentRow.tags as tag (tag.name)}
+								{@const displayTag = getDisplayTag(tag)}
+								<span class="badge badge-outline badge-sm" title={tag.name}>
+									{displayTag.categoryLabel}: {displayTag.label}
+								</span>
+							{/each}
+						{:else}
+							<p class="text-sm text-base-content/60">No tags.</p>
+						{/if}
+					</div>
+				</div>
+			{/if}
 			<div class="overflow-hidden rounded-box border border-base-300 bg-base-100 text-left">
 				<div class="flex items-center justify-between border-b border-base-300 px-3 py-2">
 					<h2 class="text-sm font-semibold">Tags</h2>
-					<span class="badge badge-sm">{tags.length}</span>
+					<span class="badge badge-sm">{selectedTags.length}</span>
 				</div>
 				<div class="max-h-80 overflow-y-auto">
 					<table class="table-pin-rows table table-xs">
 						<tbody>
-							{#each getGroupedTags(data.tags) as group (group.category)}
+							{#each groupedTags as group (group.category)}
 								<tr>
 									<th colspan="2" class="bg-base-200 text-xs font-semibold uppercase">
 										{group.categoryLabel}
@@ -241,9 +319,10 @@
 											<input
 												type="checkbox"
 												class="checkbox checkbox-xs"
-												checked={tags.includes(tag.name)}
+												checked={selectedTags.includes(tag.name)}
+												disabled={loading}
 												aria-label={`Filter by ${group.categoryLabel} ${tag.label}`}
-												onchange={() => toggleTag(tag.name)}
+												onchange={() => toggleFilterTag(tag.name)}
 											/>
 										</td>
 										<td class="text-sm">{tag.label}</td>
@@ -258,7 +337,7 @@
 		<section class="flex h-[85vh] w-[70%] max-w-screen items-center justify-center p-2">
 			{#if loading}
 				<span class="loading loading-xl loading-spinner text-primary"></span>
-			{:else}
+			{:else if current}
 				<button
 					class="{fullscreen
 						? 'fixed inset-0 z-50 flex h-screen w-screen items-center justify-center bg-black'
@@ -274,6 +353,8 @@
 						alt="croqui ref"
 					/>
 				</button>
+			{:else}
+				<p class="text-base-content/60">No image loaded.</p>
 			{/if}
 		</section>
 	</div>

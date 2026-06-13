@@ -2,6 +2,7 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import Bars from '$lib/components/bars.svelte';
+	import ToastHost from '$lib/components/ToastHost.svelte';
 	import { resolve } from '$app/paths';
 
 	let { children } = $props();
@@ -24,6 +25,7 @@
 				>
 					<li><a href={resolve('/')}>✏️ Croquis</a></li>
 					<li><a href={resolve('/gallery')}>🖼️ Gallery</a></li>
+					<li><a href={resolve('/tags')}>🏷️ Tags</a></li>
 					<li><a href={resolve('/upload')}>📂 Upload</a></li>
 				</ul>
 			</div>
@@ -33,6 +35,7 @@
 			<ul class="menu menu-horizontal px-1">
 				<li><a href={resolve('/')}>✏️ Croquis</a></li>
 				<li><a href={resolve('/gallery')}>🖼️ Gallery</a></li>
+				<li><a href={resolve('/tags')}>🏷️ Tags</a></li>
 				<li><a href={resolve('/upload')}>📂 Upload</a></li>
 			</ul>
 		</div>
@@ -42,4 +45,5 @@
 	<main class="h-[92%] p-5">
 		{@render children?.()}
 	</main>
+	<ToastHost />
 </div>

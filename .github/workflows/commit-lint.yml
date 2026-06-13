@@ -14,4 +14,4 @@ jobs:
       - uses: ahmadnassri/action-commit-lint@v2
         with:
           token: ${{secrets.GITHUB_TOKEN}}
-          config: .commitlintrc.json
+          config: app/.commitlintrc.json

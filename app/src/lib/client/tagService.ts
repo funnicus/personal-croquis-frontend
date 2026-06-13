@@ -1,3 +1,7 @@
+import { getResponseErrorMessage } from './http';
+
+export type ClientResult = { ok: true } | { ok: false; message: string };
+
 const addNewTagToImage = async (image_name: string, tag_name: string) => {
 	const result = await fetch(`/api/tags`, {
 		method: 'POST',
@@ -8,11 +12,13 @@ const addNewTagToImage = async (image_name: string, tag_name: string) => {
 	});
 
 	if (!result.ok) {
-		alert('Failed to create new tag');
-		return false;
+		return {
+			ok: false,
+			message: await getResponseErrorMessage(result, 'Failed to create new tag')
+		} satisfies ClientResult;
 	}
 
-	return true;
+	return { ok: true } satisfies ClientResult;
 };
 
 const removeTagFromImage = async (image_name: string, tag_name: string) => {
@@ -25,11 +31,13 @@ const removeTagFromImage = async (image_name: string, tag_name: string) => {
 	});
 
 	if (!result.ok) {
-		alert('Failed to remove tag');
-		return false;
+		return {
+			ok: false,
+			message: await getResponseErrorMessage(result, 'Failed to remove tag')
+		} satisfies ClientResult;
 	}
 
-	return true;
+	return { ok: true } satisfies ClientResult;
 };
 
 const removeTag = async (name: string) => {
@@ -38,11 +46,13 @@ const removeTag = async (name: string) => {
 	});
 
 	if (!result.ok) {
-		alert('Failed to remove tag');
-		return false;
+		return {
+			ok: false,
+			message: await getResponseErrorMessage(result, 'Failed to remove tag')
+		} satisfies ClientResult;
 	}
 
-	return true;
+	return { ok: true } satisfies ClientResult;
 };
 
 const clientTagService = {

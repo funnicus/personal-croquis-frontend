@@ -3,10 +3,12 @@ import tagQueries from '$lib/server/image/tag-queries';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
-	const limit = Number(url.searchParams.get('limit')) || 1000;
+	const limit = Number(url.searchParams.get('limit')) || 50;
+	const selectedTags = url.searchParams.getAll('tag');
 
 	return {
 		tags: await tagQueries.getAllTags(),
-		images: await imageService.getMany(limit)
+		selectedTags,
+		images: await imageService.getMany({ limit, tags: selectedTags })
 	};
 };

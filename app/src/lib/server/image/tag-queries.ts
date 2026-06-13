@@ -3,6 +3,15 @@ import { db } from '../clients/database-client';
 
 const getAllTags = async () => await db.selectFrom('tag').selectAll().orderBy('tag.name').execute();
 
+const getTagsWithUsage = async () =>
+	await db
+		.selectFrom('tag')
+		.leftJoin('image_tags', 'image_tags.tag_id', 'tag.id')
+		.select(['tag.id', 'tag.name', sql<number>`count(image_tags.image_id)::int`.as('usage_count')])
+		.groupBy(['tag.id', 'tag.name'])
+		.orderBy('tag.name')
+		.execute();
+
 const createTag = async (image_name: string, tag_name: string) => {
 	await db.transaction().execute(async (trx) => {
 		await trx
@@ -26,6 +35,21 @@ const deleteTag = async (name: string) => {
 	await db.deleteFrom('tag').where('name', '=', name).execute();
 };
 
-const tagQueries = { createTag, getAllTags, deleteTag };
+const renameTag = async (name: string, newName: string) => {
+	const renamed = await db
+		.updateTable('tag')
+		.set({ name: newName })
+		.where('name', '=', name)
+		.returning(['id', 'name'])
+		.executeTakeFirst();
+
+	if (!renamed) {
+		throw new Error(`Tag with name ${name} not found`);
+	}
+
+	return renamed;
+};
+
+const tagQueries = { createTag, deleteTag, getAllTags, getTagsWithUsage, renameTag };
 
 export default tagQueries;

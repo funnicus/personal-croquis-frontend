@@ -1,4 +1,4 @@
-# Personal Croqui Frontend
+# Personal Croqui App
 
 A personal reference-image (croqui) library: upload images, have them automatically
 tagged, and browse/serve them for drawing practice.

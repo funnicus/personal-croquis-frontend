@@ -1,14 +1,29 @@
 import { isFulfilled, isRejected } from '$lib/utils';
 import { blobStorageClient } from '../clients/blob-storage-client';
 import imageQueries from './image-queries';
+import type { ImageCursor } from '../../../types';
 
-const getMany = async (limit?: number) => {
-	const parsed_limit = Math.min(Number(limit ?? 30), 100);
-	const items = await imageQueries.selectMany(parsed_limit);
+type GetManyOptions = {
+	cursor?: ImageCursor | null;
+	limit?: number;
+	tags?: string[];
+};
+
+const getMany = async ({ cursor, limit, tags }: GetManyOptions = {}) => {
+	const parsed_limit = Math.min(Math.max(Number(limit ?? 30), 1), 100);
+	const items = await imageQueries.selectMany({
+		cursor,
+		limit: parsed_limit + 1,
+		tags
+	});
+	const pageItems = items.slice(0, parsed_limit);
 
 	const results = await Promise.allSettled(
-		items.map(async (item) => ({
-			...item,
+		pageItems.map(async (item) => ({
+			id: item.id,
+			name: item.name,
+			status: item.status,
+			uploaded_at: item.uploaded_at,
 			tags: await imageQueries.getImageTags(item.id)
 		}))
 	);
@@ -16,7 +31,14 @@ const getMany = async (limit?: number) => {
 	const fulfilledValues = results.filter(isFulfilled).map((p) => p.value);
 	const rejectedReasons = results.filter(isRejected).map((p) => p.reason);
 
-	const nextCursor = items.length === parsed_limit ? items[items.length - 1] : null;
+	const lastItem = pageItems[pageItems.length - 1];
+	const nextCursor =
+		items.length > parsed_limit && lastItem
+			? {
+					id: lastItem.id,
+					uploaded_at: lastItem.cursor_uploaded_at
+				}
+			: null;
 
 	return { items: fulfilledValues, nextCursor, rejectedReasons };
 };
@@ -32,6 +54,19 @@ const getOne = async (key: string) => {
 	return {
 		contentType,
 		...data
+	};
+};
+
+const getOneRow = async (key: string) => {
+	const image = await imageQueries.selectOne(key);
+
+	if (!image) {
+		return undefined;
+	}
+
+	return {
+		...image,
+		tags: await imageQueries.getImageTags(image.id)
 	};
 };
 
@@ -57,6 +92,19 @@ const getRandom = async (tags?: string[]) => {
 		name: dbData.name,
 		contentType,
 		...blobData
+	};
+};
+
+const getRandomRow = async (tags?: string[]) => {
+	const image = await imageQueries.getRandom(tags);
+
+	if (!image) {
+		return undefined;
+	}
+
+	return {
+		...image,
+		tags: await imageQueries.getImageTags(image.id)
 	};
 };
 
@@ -89,8 +137,10 @@ const deleteOne = async (key: string) => {
 
 export const imageService = {
 	getOne,
+	getOneRow,
 	getMany,
 	getRandom,
+	getRandomRow,
 	createMany,
 	deleteOne
 };

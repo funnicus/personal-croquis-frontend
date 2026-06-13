@@ -41,11 +41,20 @@ export interface ImageTaggingJobTable {
 
 export type Tag = { id: number; name: string };
 
+export type TagWithUsage = Tag & {
+	usage_count: number;
+};
+
 export type Row = {
 	id: number;
 	name: string;
 	uploaded_at: string | Date;
 	tags: Tag[];
+};
+
+export type ImageCursor = {
+	uploaded_at: string | Date;
+	id: number;
 };
 
 export type ImageStatus = 'uploaded' | 'tagging_queued' | 'tagging' | 'tagged' | 'tagging_failed';
