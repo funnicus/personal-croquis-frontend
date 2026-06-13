@@ -4,15 +4,41 @@ import { env } from '$env/dynamic/private';
 
 let minioClient: Minio.Client | null = null;
 
+const requiredEnv = (name: string, value: string | undefined) => {
+	if (!value) {
+		throw new Error(`Missing required environment variable: ${name}`);
+	}
+
+	return value;
+};
+
+const getConfig = () => {
+	const port = Number(requiredEnv('BLOB_STORAGE_PORT', env.BLOB_STORAGE_PORT));
+
+	if (!Number.isInteger(port)) {
+		throw new Error('BLOB_STORAGE_PORT must be an integer');
+	}
+
+	return {
+		endPoint: requiredEnv('BLOB_STORAGE_END_POINT', env.BLOB_STORAGE_END_POINT),
+		port,
+		accessKey: requiredEnv('MINIO_ROOT_USER', env.MINIO_ROOT_USER),
+		secretKey: requiredEnv('MINIO_ROOT_PASSWORD', env.MINIO_ROOT_PASSWORD),
+		bucket: requiredEnv('BLOB_STORAGE_BUCKET', env.BLOB_STORAGE_BUCKET)
+	};
+};
+
 const get = () => {
 	if (minioClient) return minioClient;
 
+	const config = getConfig();
+
 	minioClient = new Minio.Client({
-		endPoint: env.BLOB_STORAGE_END_POINT,
-		port: Number(env.BLOB_STORAGE_PORT),
+		endPoint: config.endPoint,
+		port: config.port,
 		useSSL: false,
-		accessKey: env.MINIO_ROOT_USER,
-		secretKey: env.MINIO_ROOT_PASSWORD
+		accessKey: config.accessKey,
+		secretKey: config.secretKey
 	});
 
 	return minioClient;
@@ -23,12 +49,14 @@ const bucketExists = async () => {
 		minioClient = get();
 	}
 
-	const exists = await minioClient.bucketExists(env.BLOB_STORAGE_BUCKET);
+	const { bucket } = getConfig();
+
+	const exists = await minioClient.bucketExists(bucket);
 	if (exists) {
-		console.log(`Bucket ${env.BLOB_STORAGE_BUCKET} exists.`);
+		console.log(`Bucket ${bucket} exists.`);
 	} else {
-		await minioClient.makeBucket(env.BLOB_STORAGE_BUCKET);
-		console.log(`Bucket ${env.BLOB_STORAGE_BUCKET} created!`);
+		await minioClient.makeBucket(bucket);
+		console.log(`Bucket ${bucket} created!`);
 	}
 };
 
@@ -46,8 +74,9 @@ const uploadFile = async (file: File, folder?: string) => {
 		? `/${folder}/${Date.now()}-${file.name}`
 		: `${Date.now()}-${file.name}`;
 	const meta = { 'Content-Type': file.type || 'application/octet-stream' };
+	const { bucket } = getConfig();
 
-	await minioClient.putObject(env.BLOB_STORAGE_BUCKET, objectName, buffer, buffer.length, meta);
+	await minioClient.putObject(bucket, objectName, buffer, buffer.length, meta);
 
 	return objectName;
 };
@@ -57,9 +86,11 @@ const retrieveFile = async (objectName: string) => {
 		minioClient = get();
 	}
 
+	const { bucket } = getConfig();
+
 	return {
-		stream: await minioClient.getObject(env.BLOB_STORAGE_BUCKET, objectName),
-		stat: await minioClient.statObject(env.BLOB_STORAGE_BUCKET, objectName)
+		stream: await minioClient.getObject(bucket, objectName),
+		stat: await minioClient.statObject(bucket, objectName)
 	};
 };
 
@@ -71,8 +102,9 @@ const retrieveManyFiles = async () => {
 	}
 
 	const keys: string[] = [];
+	const { bucket } = getConfig();
 
-	for await (const obj of minioClient.listObjectsV2(env.BLOB_STORAGE_BUCKET, '', true)) {
+	for await (const obj of minioClient.listObjectsV2(bucket, '', true)) {
 		if (obj.name) keys.push(obj.name);
 	}
 
@@ -87,8 +119,9 @@ const retrieveRandomFile = async () => {
 	}
 
 	const keys: string[] = [];
+	const { bucket } = getConfig();
 
-	for await (const obj of minioClient.listObjectsV2(env.BLOB_STORAGE_BUCKET, '', true)) {
+	for await (const obj of minioClient.listObjectsV2(bucket, '', true)) {
 		if (obj.name) keys.push(obj.name);
 	}
 
@@ -99,8 +132,8 @@ const retrieveRandomFile = async () => {
 	const objectName = keys[Math.floor(Math.random() * keys.length)];
 
 	return {
-		stream: await minioClient.getObject(env.BLOB_STORAGE_BUCKET, objectName),
-		stat: await minioClient.statObject(env.BLOB_STORAGE_BUCKET, objectName)
+		stream: await minioClient.getObject(bucket, objectName),
+		stat: await minioClient.statObject(bucket, objectName)
 	};
 };
 
@@ -111,7 +144,9 @@ const deleteFile = async (objectName: string) => {
 		minioClient = get();
 	}
 
-	await minioClient.removeObject(env.BLOB_STORAGE_BUCKET, objectName);
+	const { bucket } = getConfig();
+
+	await minioClient.removeObject(bucket, objectName);
 };
 
 export const blobStorageClient = {
