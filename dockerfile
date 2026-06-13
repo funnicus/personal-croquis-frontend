@@ -1,14 +1,23 @@
-# Use a Node.js Alpine image for the builder stage
-FROM node:24-alpine AS builder
+# Shared dependency layer (includes dev deps, e.g. kysely-ctl for migrations)
+FROM node:24-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
+
+# Build the SvelteKit app, then prune to production dependencies
+FROM deps AS builder
 COPY . .
 RUN npm run build
 RUN npm prune --production
 
-# Use another Node.js Alpine image for the final stage
-FROM node:24-alpine
+# One-shot database migration runner.
+# Keeps the full dependency set + migrations + kysely config so `kysely migrate up` can run.
+FROM deps AS migrator
+COPY . .
+CMD [ "npm", "run", "migrate:up" ]
+
+# Final runtime image (must remain the last stage so the app service builds it by default)
+FROM node:24-alpine AS runner
 WORKDIR /app
 COPY --from=builder /app/build build/
 COPY --from=builder /app/node_modules node_modules/

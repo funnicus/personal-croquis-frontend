@@ -1,6 +1,11 @@
 networks:
   stack:
     driver: bridge
+    ipam:
+      config:
+        # Pinned so the ufw rule allowing this subnet -> host Ollama (port 11434)
+        # keeps matching even after the network is recreated.
+        - subnet: 172.19.0.0/16
 
 services:
   # MinIO admin user info defined in .env
@@ -34,26 +39,112 @@ services:
       POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_DB: ${DATABASE_NAME}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: applies database migrations, then exits. The app waits for this to
+  # complete successfully so a cold `docker compose up` starts on a migrated DB.
+  migrate:
+    networks:
+      - stack
+    build:
+      context: ./app
+      dockerfile: ../dockerfile
+      target: migrator
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ./app/.env
+    # OVERRIDE to reach the docker db service instead of localhost
+    environment:
+      DATABASE_HOST: db
+    restart: 'no'
+
   app:
     networks:
       - stack
     restart: unless-stopped
     build:
-      context: .
+      context: ./app
+      # The Dockerfile lives at the repo root and expects the app dir as context.
+      dockerfile: ../dockerfile
     depends_on:
-      - db
-      - minio
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_started
+      image-tagger-api:
+        condition: service_started
     ports:
       - '${FRONTEND_PORT}:3000'
     env_file:
-      - .env
+      - ./app/.env
     # OVERRIDE certain environment variables to use docker services
     environment:
       DATABASE_HOST: db
       BLOB_STORAGE_END_POINT: minio
+      IMAGE_TAGGER_API_URL: http://image-tagger-api:8000
+      # adapter-node caps request bodies at 512K by default, which blocks large
+      # multi-image uploads. "Infinity" disables the cap (the practical ceiling
+      # then becomes available memory). Set a finite value like 2G to bound it.
+      BODY_SIZE_LIMIT: ${BODY_SIZE_LIMIT:-Infinity}
     # For linux host machines to access host services from inside Docker containers
     extra_hosts:
       - 'host.docker.internal:host-gateway'
+
+  image-tagger-api:
+    networks:
+      - stack
+    restart: unless-stopped
+    build:
+      context: ./image-tagger-api
+    depends_on:
+      - minio
+    ports:
+      - '${IMAGE_TAGGER_PORT:-8000}:8000'
+    environment:
+      # Run on CPU by default; override to "cuda" if a GPU is made available.
+      DEVICE: cpu
+      # Reach an Ollama instance running on the host machine. Point this at an
+      # "ollama" service instead if you add one to this stack.
+      OLLAMA_URL: http://host.docker.internal:11434/api/generate
+    volumes:
+      # The RAM++ checkpoint is mounted instead of baked into the image.
+      - ./image-tagger-api/pretrained:/app/pretrained:ro
+    # For linux host machines to access host services (e.g. Ollama) from inside Docker.
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+  # Standalone worker: polls for queued tagging jobs and tags them via the tagger API.
+  image-tagger-worker:
+    networks:
+      - stack
+    restart: unless-stopped
+    build:
+      context: ./image-tagger-worker
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_started
+      image-tagger-api:
+        condition: service_started
+    # Reuse the app's infra credentials (same DB + MinIO instance).
+    env_file:
+      - ./app/.env
+    # OVERRIDE to use docker service names instead of localhost.
+    environment:
+      DATABASE_HOST: db
+      BLOB_STORAGE_END_POINT: minio
+      IMAGE_TAGGER_API_URL: http://image-tagger-api:8000
 
 volumes:
   minio:

@@ -9,10 +9,13 @@ on:
     types: [opened, synchronize]
 
 jobs:
-  # Backend checks
+  # App checks
   checks:
-    name: Build & Test
+    name: Build & Test App
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./app
     steps:
       - name: Checkout code
         uses: actions/checkout@v6

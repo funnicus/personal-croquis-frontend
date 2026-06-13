@@ -34,7 +34,7 @@
 		const res = await fetch(`/api/images/random?${tags.map((t) => `tag=${t}`).join('&')}`);
 
 		if (!res.ok) {
-			alert('Failed to fetch new image');
+			alert('Failed to fetch new image. Have you uploaded images to the blob storage?');
 			loading = false;
 			return;
 		}

@@ -24,3 +24,4 @@
 5. Edit image name
 6. Cleanup all dangling pictures in blob storage
 7. Document dev path
+8. Update postgres

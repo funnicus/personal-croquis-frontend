@@ -2,6 +2,7 @@ import type { RequestHandler } from './$types';
 import { imageService } from '$lib/server/image/image-service';
 import { redirect } from '@sveltejs/kit';
 import { StatusCodes } from 'http-status-codes';
+import { imageTaggingService } from '$lib/server/image/image-tagging-service';
 
 export const GET: RequestHandler = async ({ url }) => {
 	const limit = Number(url.searchParams.get('limit')) || 50;
@@ -24,7 +25,13 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 	}
 
-	await imageService.createMany(files);
+	const results = await imageService.createMany(files);
+
+	await imageTaggingService.enqueueMany(results.images);
+
+	if (results.failed.length > 0) {
+		console.error('Some images failed to create.');
+	}
 
 	return redirect(StatusCodes.SEE_OTHER, '/gallery');
 };

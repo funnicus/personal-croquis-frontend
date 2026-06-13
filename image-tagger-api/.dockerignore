@@ -1,0 +1,17 @@
+# Keep the build context small and reproducible.
+.venv
+__pycache__
+**/__pycache__
+.ruff_cache
+.pytest_cache
+.mypy_cache
+*.pyc
+
+# The RAM++ checkpoint is large (~2.9GB) and is mounted at runtime, not baked in.
+pretrained
+
+.git
+.gitignore
+.dockerignore
+README.md
+.env

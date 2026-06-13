@@ -69,13 +69,14 @@ const createMany = async (files: File[]) => {
 		.filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled')
 		.map((r) => r.value);
 
-	await imageQueries.createMany(ok.map((name) => ({ name })));
+	const created = await imageQueries.createMany(ok.map((name) => ({ name })));
 
 	const failed = settled
 		.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
 		.map((r, i) => ({ name: files[i].name, error: String(r.reason) }));
 
 	return {
+		images: created.map((img) => img.id),
 		ok,
 		failed
 	};

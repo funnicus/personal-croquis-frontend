@@ -101,7 +101,11 @@ const getRandom = async (tags?: string[]) => {
 };
 
 const createMany = async (images: Array<{ name: string }>) =>
-	await db.insertInto('image').values(images).execute();
+	await db
+		.insertInto('image')
+		.values(images.map((image) => ({ name: image.name, status: 'uploaded' })))
+		.returning('id')
+		.execute();
 
 const insertImageTags = async (imageId: number, tagIds: number[]) => {
 	const values = tagIds.map((tagId) => ({
