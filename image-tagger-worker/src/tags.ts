@@ -1,26 +1,20 @@
 import type { Transaction } from 'kysely';
 import type { ArtisticTagResponse, Database } from './types.js';
 
-const TAG_CATEGORIES = [
-	'expression',
-	'pose',
-	'composition',
-	'style',
-	'practice_value',
-	'mood'
-] as const;
-
 export async function saveArtisticTags(
 	trx: Transaction<Database>,
 	imageId: number,
 	result: ArtisticTagResponse
 ) {
-	for (const category of TAG_CATEGORIES) {
-		const tags = result[category] ?? [];
+	for (const [rawCategory, tags] of getTagCategories(result)) {
+		const categoryName = normalizeCategory(rawCategory);
+		if (!categoryName) continue;
 
 		for (const rawTag of tags) {
-			const name = normalizeTag(rawTag);
-			if (!name) continue;
+			const tagName = normalizeTag(rawTag);
+			if (!tagName) continue;
+
+			const name = `${categoryName}/${tagName}`;
 
 			const tag = await trx
 				.insertInto('tag')
@@ -42,5 +36,15 @@ export async function saveArtisticTags(
 }
 
 export function normalizeTag(tag: string) {
-	return tag.trim().toLowerCase().replaceAll(' ', '_');
+	return tag.trim().toLowerCase().replace(/[\\/]+/g, '_').replace(/\s+/g, '_');
+}
+
+export function normalizeCategory(category: string) {
+	return normalizeTag(category);
+}
+
+function getTagCategories(result: ArtisticTagResponse) {
+	return Object.entries(result).filter((entry): entry is [string, string[]] =>
+		Array.isArray(entry[1])
+	);
 }

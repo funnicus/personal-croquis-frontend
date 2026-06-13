@@ -46,6 +46,7 @@ export type TaggingJob = {
 };
 
 export type ArtisticTagResponse = {
+	[category: string]: string[] | string | null | undefined;
 	expression: string[];
 	pose: string[];
 	composition: string[];

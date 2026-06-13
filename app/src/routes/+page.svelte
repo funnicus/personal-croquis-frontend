@@ -23,6 +23,66 @@
 
 	let tags: string[] = $state([]);
 
+	const humanizeTagPart = (value: string) =>
+		value
+			.split(/[_-]+/)
+			.filter(Boolean)
+			.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+			.join(' ');
+
+	const getTagParts = (name: string) => {
+		const separatorIndex = name.indexOf('/');
+
+		if (separatorIndex === -1) {
+			return {
+				category: 'uncategorized',
+				categoryLabel: 'Uncategorized',
+				label: humanizeTagPart(name)
+			};
+		}
+
+		const category = name.slice(0, separatorIndex);
+		const tagName = name.slice(separatorIndex + 1);
+
+		return {
+			category,
+			categoryLabel: humanizeTagPart(category),
+			label: humanizeTagPart(tagName)
+		};
+	};
+
+	const getGroupedTags = (tagOptions: Array<{ name: string }>) => {
+		const groups = new Map<
+			string,
+			{ category: string; categoryLabel: string; tags: Array<{ name: string; label: string }> }
+		>();
+
+		for (const tag of tagOptions) {
+			const parts = getTagParts(tag.name);
+			const group = groups.get(parts.category) ?? {
+				category: parts.category,
+				categoryLabel: parts.categoryLabel,
+				tags: []
+			};
+
+			group.tags.push({ name: tag.name, label: parts.label });
+			groups.set(parts.category, group);
+		}
+
+		return Array.from(groups.values())
+			.map((group) => ({
+				...group,
+				tags: group.tags.sort((a, b) => a.label.localeCompare(b.label))
+			}))
+			.sort((a, b) => a.categoryLabel.localeCompare(b.categoryLabel));
+	};
+
+	const getTagQuery = () => {
+		const params = new URLSearchParams();
+		tags.forEach((tag) => params.append('tag', tag));
+		return params.toString();
+	};
+
 	const toggleFullscreen = () => {
 		fullscreen = !fullscreen;
 	};
@@ -31,7 +91,8 @@
 		if (!browser) return;
 
 		loading = true;
-		const res = await fetch(`/api/images/random?${tags.map((t) => `tag=${t}`).join('&')}`);
+		const tagQuery = getTagQuery();
+		const res = await fetch(`/api/images/random${tagQuery ? `?${tagQuery}` : ''}`);
 
 		if (!res.ok) {
 			alert('Failed to fetch new image. Have you uploaded images to the blob storage?');
@@ -160,26 +221,39 @@
 			{:else}
 				<button onclick={stopTime} class="btn btn-error">Stop</button>
 			{/if}
-			<details class="dropdown">
-				<summary class="btn m-1">Tags</summary>
-				<ul class="dropdown-content menu z-1 w-52 rounded-box bg-base-100 p-2 shadow-sm">
-					{#each data.tags as tag (tag)}
-						<li>
-							<label
-								class="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-base-200"
-							>
-								<input
-									type="checkbox"
-									class="checkbox checkbox-sm"
-									checked={tags.includes(tag.name)}
-									onchange={() => toggleTag(tag.name)}
-								/>
-								<span class="text-sm">{tag.name}</span>
-							</label>
-						</li>
-					{/each}
-				</ul>
-			</details>
+			<div class="overflow-hidden rounded-box border border-base-300 bg-base-100 text-left">
+				<div class="flex items-center justify-between border-b border-base-300 px-3 py-2">
+					<h2 class="text-sm font-semibold">Tags</h2>
+					<span class="badge badge-sm">{tags.length}</span>
+				</div>
+				<div class="max-h-80 overflow-y-auto">
+					<table class="table-pin-rows table table-xs">
+						<tbody>
+							{#each getGroupedTags(data.tags) as group (group.category)}
+								<tr>
+									<th colspan="2" class="bg-base-200 text-xs font-semibold uppercase">
+										{group.categoryLabel}
+									</th>
+								</tr>
+								{#each group.tags as tag (tag.name)}
+									<tr class="hover:bg-base-200">
+										<td class="w-8">
+											<input
+												type="checkbox"
+												class="checkbox checkbox-xs"
+												checked={tags.includes(tag.name)}
+												aria-label={`Filter by ${group.categoryLabel} ${tag.label}`}
+												onchange={() => toggleTag(tag.name)}
+											/>
+										</td>
+										<td class="text-sm">{tag.label}</td>
+									</tr>
+								{/each}
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			</div>
 		</section>
 		<section class="flex h-[85vh] w-[70%] max-w-screen items-center justify-center p-2">
 			{#if loading}

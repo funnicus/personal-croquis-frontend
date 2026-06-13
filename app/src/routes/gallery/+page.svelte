@@ -43,7 +43,8 @@
 
 	// add a brand-new tag (to the row + notify parent to add globally)
 	const addNewTag = async (row: Row, value: string) => {
-		await clientTagService.addNewTagToImage(row.name, value);
+		const ok = await clientTagService.addNewTagToImage(row.name, value);
+		if (!ok) return;
 
 		rows = rows.map((r) => {
 			if (r.id === row.id) {
@@ -58,7 +59,8 @@
 	};
 
 	const removeTag = async (row: Row, tag: string) => {
-		await clientTagService.removeTagFromImage(row.name, tag);
+		const ok = await clientTagService.removeTagFromImage(row.name, tag);
+		if (!ok) return;
 
 		rows = rows.map((r) => {
 			if (r.id === row.id) {
@@ -70,8 +72,8 @@
 		const tagUsed = rows.some((r) => r.tags.map((t) => t.name).includes(tag));
 		if (!tagUsed) {
 			tags = tags.filter((t) => t.name !== tag);
+			await clientTagService.removeTag(tag);
 		}
-		await clientTagService.removeTag(tag);
 	};
 
 	function formatDate(d: Date) {

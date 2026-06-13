@@ -9,8 +9,10 @@ const addNewTagToImage = async (image_name: string, tag_name: string) => {
 
 	if (!result.ok) {
 		alert('Failed to create new tag');
-		return;
+		return false;
 	}
+
+	return true;
 };
 
 const removeTagFromImage = async (image_name: string, tag_name: string) => {
@@ -24,19 +26,23 @@ const removeTagFromImage = async (image_name: string, tag_name: string) => {
 
 	if (!result.ok) {
 		alert('Failed to remove tag');
-		return;
+		return false;
 	}
+
+	return true;
 };
 
 const removeTag = async (name: string) => {
-	const result = await fetch(`/api/tags/${name}`, {
+	const result = await fetch(`/api/tags/${encodeURIComponent(name)}`, {
 		method: 'DELETE'
 	});
 
 	if (!result.ok) {
 		alert('Failed to remove tag');
-		return;
+		return false;
 	}
+
+	return true;
 };
 
 const clientTagService = {
