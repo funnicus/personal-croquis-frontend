@@ -208,10 +208,13 @@
 		const savedTime = localStorage.getItem('time');
 		const savedTimeOnReset = localStorage.getItem('timeOnReset');
 		const savedStopped = localStorage.getItem('stopped');
+		const savedSelectedTags = localStorage.getItem('selectedTags');
 
 		if (savedTime) time = parseInt(savedTime);
 		if (savedTimeOnReset) timeOnReset = parseInt(savedTimeOnReset);
 		if (savedStopped) stopped = savedStopped === 'true';
+		if (savedSelectedTags) selectedTags = JSON.parse(savedSelectedTags);
+
 		if (savedCurrent) {
 			getImageByName(savedCurrent);
 		} else {
@@ -232,6 +235,7 @@
 		localStorage.setItem('time', time.toString());
 		localStorage.setItem('timeOnReset', timeOnReset.toString());
 		localStorage.setItem('stopped', stopped.toString());
+		localStorage.setItem('selectedTags', JSON.stringify(selectedTags));
 	});
 
 	$effect(() => {
