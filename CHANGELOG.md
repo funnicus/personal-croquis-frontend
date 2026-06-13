@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+### 🐛 Bug Fixes
+
+- Selected tags saved to localstorage
+
+## [13.6.2026] - 2026-06-13
+
 ### 🚀 Features
 
 - Add README
