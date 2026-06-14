@@ -248,9 +248,11 @@
 	});
 </script>
 
-<div class="flex items-center justify-center">
-	<div class="flex w-full justify-between gap-15">
-		<section class="gap 15 flex w-[30%] flex-col gap-5 p-2 text-center">
+<div class="flex h-full min-h-0 items-center justify-center overflow-hidden">
+	<div class="flex h-full min-h-0 w-full justify-between gap-15">
+		<section
+			class="gap 15 flex min-h-0 w-[30%] flex-col gap-5 overflow-y-auto p-2 text-center [&>*]:shrink-0"
+		>
 			<p class="text-6xl">{new Date(time * 1000).toISOString().slice(11, 19)}</p>
 			<button onclick={getNewImage} class="btn btn-primary" disabled={loading}>
 				{loading ? 'LOADING' : 'SKIP'}
@@ -338,7 +340,7 @@
 				</div>
 			</div>
 		</section>
-		<section class="flex h-[85vh] w-[70%] max-w-screen items-center justify-center p-2">
+		<section class="flex min-h-0 w-[70%] max-w-screen items-center justify-center p-2">
 			{#if loading}
 				<span class="loading loading-xl loading-spinner text-primary"></span>
 			{:else if current}
