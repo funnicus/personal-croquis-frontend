@@ -57,7 +57,7 @@ services:
       - stack
     build:
       context: ./app
-      dockerfile: ../dockerfile
+      dockerfile: Dockerfile
       target: migrator
     depends_on:
       db:
@@ -76,8 +76,7 @@ services:
     restart: unless-stopped
     build:
       context: ./app
-      # The Dockerfile lives at the repo root and expects the app dir as context.
-      dockerfile: ../dockerfile
+      dockerfile: Dockerfile
     depends_on:
       db:
         condition: service_healthy
