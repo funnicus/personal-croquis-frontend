@@ -31,7 +31,7 @@ All notable changes to this project will be documented in this file.
 - Update node version, toggle image fullscreen with timer
 - Update README
 - Fix lint
-- Improve tag funcitonality, improve queries, persist croqui settings
+- Improve tag funcitonality, improve queries, persist croquis settings
 - Add frontend support for categories
 - Category ui refactor
 - Move audits last in checks

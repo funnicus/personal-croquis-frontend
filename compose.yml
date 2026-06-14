@@ -24,6 +24,8 @@ services:
     command: server /data --console-address ":9001"
     env_file:
       - .env
+    labels:
+      - docker-volume-backup.stop-during-backup=true
   db:
     networks:
       - stack
@@ -33,6 +35,7 @@ services:
       - ${DATABASE_PORT}:5432
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - dbdump:/backup/db
     env_file:
       - .env
     environment:
@@ -40,10 +43,12 @@ services:
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_DB: ${DATABASE_NAME}
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}']
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 10
+    labels:
+      - docker-volume-backup.archive-pre=/bin/sh -c 'pg_dump -U "$$POSTGRES_USER" "$$POSTGRES_DB" > /backup/db/croquis.sql'
 
   # One-shot: applies database migrations, then exits. The app waits for this to
   # complete successfully so a cold `docker compose up` starts on a migrated DB.
@@ -52,17 +57,18 @@ services:
       - stack
     build:
       context: ./app
-      dockerfile: ../dockerfile
+      dockerfile: Dockerfile
       target: migrator
     depends_on:
       db:
         condition: service_healthy
     env_file:
-      - ./app/.env
+      - ./.env
     # OVERRIDE to reach the docker db service instead of localhost
     environment:
       DATABASE_HOST: db
-    restart: 'no'
+      DATABASE_PORT: "5432"
+    restart: "no"
 
   app:
     networks:
@@ -70,8 +76,7 @@ services:
     restart: unless-stopped
     build:
       context: ./app
-      # The Dockerfile lives at the repo root and expects the app dir as context.
-      dockerfile: ../dockerfile
+      dockerfile: Dockerfile
     depends_on:
       db:
         condition: service_healthy
@@ -82,21 +87,22 @@ services:
       image-tagger-api:
         condition: service_started
     ports:
-      - '${FRONTEND_PORT}:3000'
+      - "${FRONTEND_PORT}:3000"
     env_file:
-      - ./app/.env
+      - ./.env
     # OVERRIDE certain environment variables to use docker services
     environment:
       DATABASE_HOST: db
+      DATABASE_PORT: "5432"
       BLOB_STORAGE_END_POINT: minio
+      BLOB_STORAGE_PORT: "9000"
       IMAGE_TAGGER_API_URL: http://image-tagger-api:8000
       # adapter-node caps request bodies at 512K by default, which blocks large
       # multi-image uploads. "Infinity" disables the cap (the practical ceiling
       # then becomes available memory). Set a finite value like 2G to bound it.
       BODY_SIZE_LIMIT: ${BODY_SIZE_LIMIT:-Infinity}
-    # For linux host machines to access host services from inside Docker containers
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
+    labels:
+      - docker-volume-backup.stop-during-backup=true
 
   image-tagger-api:
     networks:
@@ -107,7 +113,7 @@ services:
     depends_on:
       - minio
     ports:
-      - '${IMAGE_TAGGER_PORT:-8000}:8000'
+      - "${IMAGE_TAGGER_PORT:-8000}:8000"
     environment:
       # Run on CPU by default; override to "cuda" if a GPU is made available.
       DEVICE: cpu
@@ -119,7 +125,7 @@ services:
       - ./image-tagger-api/pretrained:/app/pretrained:ro
     # For linux host machines to access host services (e.g. Ollama) from inside Docker.
     extra_hosts:
-      - 'host.docker.internal:host-gateway'
+      - "host.docker.internal:host-gateway"
 
   # Standalone worker: polls for queued tagging jobs and tags them via the tagger API.
   image-tagger-worker:
@@ -139,13 +145,31 @@ services:
         condition: service_started
     # Reuse the app's infra credentials (same DB + MinIO instance).
     env_file:
-      - ./app/.env
+      - ./.env
     # OVERRIDE to use docker service names instead of localhost.
     environment:
       DATABASE_HOST: db
+      DATABASE_PORT: "5432"
       BLOB_STORAGE_END_POINT: minio
+      BLOB_STORAGE_PORT: "9000"
       IMAGE_TAGGER_API_URL: http://image-tagger-api:8000
+    labels:
+      - docker-volume-backup.stop-during-backup=true
+
+  backup:
+    profiles:
+      - backup
+    image: offen/docker-volume-backup:v2.48.0
+    restart: unless-stopped
+    env_file:
+      - ./backup.env
+    volumes:
+      - dbdump:/backup/db:ro
+      - minio:/backup/minio:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${BACKUP_ARCHIVE_HOST_PATH:?Set BACKUP_ARCHIVE_HOST_PATH in .env to a backup directory}:/archive
 
 volumes:
   minio:
   pgdata:
+  dbdump:

@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './load-env.js';
 import { db } from './db.js';
 import { runWorker, stopWorker } from './worker.js';
 

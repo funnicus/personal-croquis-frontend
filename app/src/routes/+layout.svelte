@@ -12,8 +12,8 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="h-screen">
-	<div class="navbar h-[8%] bg-base-100 shadow-sm">
+<div class="flex h-screen flex-col overflow-hidden">
+	<div class="navbar shrink-0 bg-base-100 shadow-sm">
 		<div class="navbar-start">
 			<div class="dropdown">
 				<div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
@@ -42,7 +42,7 @@
 		<div class="navbar-end"></div>
 	</div>
 
-	<main class="h-[92%] p-5">
+	<main class="min-h-0 flex-1 overflow-auto p-5">
 		{@render children?.()}
 	</main>
 	<ToastHost />
