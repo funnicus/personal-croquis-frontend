@@ -47,6 +47,7 @@ Upload flow: `app` enqueues a tagging job, `image-tagger-worker` claims it,
 
 ```bash
 docker compose up -d --build
+docker compose build --no-cache --pull # Skip cache and pull latest images
 docker compose down
 docker compose ps
 docker compose logs -f app
