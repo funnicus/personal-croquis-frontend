@@ -354,7 +354,7 @@
 						class={fullscreen
 							? 'h-screen w-screen cursor-zoom-out object-contain'
 							: 'h-[inherit] max-h-[inherit] w-[inherit] max-w-[inherit] cursor-zoom-in object-scale-down'}
-						alt="croqui ref"
+						alt="croquis ref"
 					/>
 				</button>
 			{:else}

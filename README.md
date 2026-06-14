@@ -1,6 +1,6 @@
-# Personal Croqui App
+# Personal Croquis App
 
-A personal reference-image library for timed croqui practice. Upload images,
+A personal reference-image library for timed croquis practice. Upload images,
 automatically tag them, filter by useful drawing-practice categories, and serve
 them through a timer workflow.
 
