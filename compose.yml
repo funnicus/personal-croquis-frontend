@@ -63,10 +63,11 @@ services:
       db:
         condition: service_healthy
     env_file:
-      - ./app/.env
+      - ./.env
     # OVERRIDE to reach the docker db service instead of localhost
     environment:
       DATABASE_HOST: db
+      DATABASE_PORT: "5432"
     restart: "no"
 
   app:
@@ -89,11 +90,13 @@ services:
     ports:
       - "${FRONTEND_PORT}:3000"
     env_file:
-      - ./app/.env
+      - ./.env
     # OVERRIDE certain environment variables to use docker services
     environment:
       DATABASE_HOST: db
+      DATABASE_PORT: "5432"
       BLOB_STORAGE_END_POINT: minio
+      BLOB_STORAGE_PORT: "9000"
       IMAGE_TAGGER_API_URL: http://image-tagger-api:8000
       # adapter-node caps request bodies at 512K by default, which blocks large
       # multi-image uploads. "Infinity" disables the cap (the practical ceiling
@@ -143,11 +146,13 @@ services:
         condition: service_started
     # Reuse the app's infra credentials (same DB + MinIO instance).
     env_file:
-      - ./app/.env
+      - ./.env
     # OVERRIDE to use docker service names instead of localhost.
     environment:
       DATABASE_HOST: db
+      DATABASE_PORT: "5432"
       BLOB_STORAGE_END_POINT: minio
+      BLOB_STORAGE_PORT: "9000"
       IMAGE_TAGGER_API_URL: http://image-tagger-api:8000
     labels:
       - docker-volume-backup.stop-during-backup=true

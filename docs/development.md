@@ -22,7 +22,6 @@ service and work from the tagger API container.
 
 ```bash
 cp .env.example .env
-cp app/.env.example app/.env
 
 docker compose up -d db minio image-tagger-api image-tagger-worker
 
@@ -33,9 +32,8 @@ npm run dev -- --open
 
 Open http://localhost:5173.
 
-For host-side app dev, point `app/.env`'s `DATABASE_HOST` and
-`BLOB_STORAGE_END_POINT` at `localhost`, because Docker publishes those ports to
-the host.
+The app loads shared database and MinIO values from the root `.env`. Use
+`app/.env` only for intentional app-specific overrides.
 
 ## Full Local Dev
 
@@ -44,8 +42,6 @@ host. This keeps signed `localhost` MinIO URLs resolvable by every process.
 
 ```bash
 cp .env.example .env
-cp app/.env.example app/.env
-cp image-tagger-worker/.env.example image-tagger-worker/.env
 
 docker compose up -d db minio
 ```
@@ -78,6 +74,10 @@ You can also run the worker on its own:
 cd app
 npm run dev:tag-worker
 ```
+
+The worker also loads shared database, MinIO, and tagger API values from the
+root `.env`. Use `image-tagger-worker/.env` only for intentional worker-specific
+overrides such as polling intervals.
 
 ## Checks
 

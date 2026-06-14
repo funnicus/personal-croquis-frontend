@@ -8,7 +8,6 @@ them through a timer workflow.
 
 ```bash
 cp .env.example .env
-cp app/.env.example app/.env
 docker compose up -d --build
 ```
 

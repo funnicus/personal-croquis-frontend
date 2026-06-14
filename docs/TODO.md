@@ -16,6 +16,7 @@
 - Label llm services (llm, prod)
 - Label prod services (backups, llms)
 - Wide events
+- Stack robustness (will this work after 10 years?)
 
 ## Bonus:
 

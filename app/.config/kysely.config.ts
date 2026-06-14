@@ -1,6 +1,7 @@
 import { PostgresDialect } from 'kysely';
 import { defineConfig } from 'kysely-ctl';
 import { Pool } from 'pg';
+import './load-env';
 
 const dialect = new PostgresDialect({
 	pool: new Pool({

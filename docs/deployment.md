@@ -6,7 +6,6 @@ Create the required env files:
 
 ```bash
 cp .env.example .env
-cp app/.env.example app/.env
 ```
 
 Fill in credentials for Postgres and MinIO. For an all-Docker run, service
