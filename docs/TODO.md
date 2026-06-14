@@ -1,5 +1,7 @@
 # TODO:
 
+- Search by image name
+- Zod validated env
 - Remove torch and RAM++, if not used
 - Python project .env (change llm models etc)
 - Shared envs in one place
